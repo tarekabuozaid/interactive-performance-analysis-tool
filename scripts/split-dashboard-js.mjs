@@ -1,0 +1,16 @@
+﻿import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.join(__dirname, "..", "dashboard");
+const lines = fs.readFileSync(path.join(root, "_bundle.js"), "utf8").split(/\r?\n/);
+const slice = (a, b) => lines.slice(a - 1, b).join("\n") + "\n";
+const out = path.join(root, "js");
+fs.mkdirSync(out, { recursive: true });
+fs.writeFileSync(path.join(out, "data.js"), slice(1, 38));
+fs.writeFileSync(path.join(out, "charts.js"), slice(58, 284));
+fs.writeFileSync(path.join(out, "insights.js"), slice(286, 322));
+fs.writeFileSync(path.join(out, "modal.js"), slice(324, 395));
+fs.writeFileSync(path.join(out, "export.js"), slice(397, 455));
+fs.writeFileSync(path.join(out, "main.js"), slice(40, 56) + "\n" + slice(457, 489));
+console.log("ok");

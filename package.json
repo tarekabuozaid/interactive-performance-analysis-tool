@@ -1,0 +1,11 @@
+﻿{
+  "name": "tfm68-quarterly-dashboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-dashboard.mjs",
+    "dev:index": "node scripts/write-dev-index.mjs",
+    "split-js": "node scripts/split-dashboard-js.mjs",
+    "sync": "node scripts/build-dashboard.mjs && node scripts/write-dev-index.mjs"
+  }
+}

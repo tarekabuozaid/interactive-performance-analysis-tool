@@ -1,0 +1,161 @@
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1>Quarterly Performance Dashboard</h1>
+      <div class="subtitle">
+        <span class="live-dot"></span>
+        TFM68 — AWQAF Mosques Maintenance · Al Dhafra Region
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn" onclick="exportToExcel()">📊 Export Excel</button>
+      <button class="btn" onclick="exportToPDF()">📄 Export PDF</button>
+      <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Quarter</span>
+      <select class="filter-select" id="quarterSelect" onchange="updateDashboard()">
+        <option value="Q1">Q1 — Jan-Mar 2026</option>
+        <option value="Q2" selected>Q2 — Apr-Jun 2026</option>
+        <option value="Q3">Q3 — Jul-Sep 2026</option>
+        <option value="Q4">Q4 — Oct-Dec 2026</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Region</span>
+      <select class="filter-select" id="regionSelect" onchange="updateDashboard()">
+        <option value="all">All Regions</option>
+        <option value="madinat">Madinat Zayed</option>
+        <option value="liwa">Liwa</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">View</span>
+      <select class="filter-select" id="viewSelect" onchange="updateDashboard()">
+        <option value="overview">Overview</option>
+        <option value="financial">Financial</option>
+        <option value="operational">Operational</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi-card" onclick="openDrillDown('completed')">
+      <div class="kpi-header">
+        <div class="kpi-icon">✅</div>
+        <div class="kpi-trend trend-up">▲ 12.4%</div>
+      </div>
+      <div class="kpi-value" id="kpiCompleted">0</div>
+      <div class="kpi-label">Completed Work Orders</div>
+      <canvas class="kpi-sparkline" id="sparkCompleted"></canvas>
+    </div>
+
+    <div class="kpi-card warning" onclick="openDrillDown('pending')">
+      <div class="kpi-header">
+        <div class="kpi-icon">⏳</div>
+        <div class="kpi-trend trend-down">▼ 5.2%</div>
+      </div>
+      <div class="kpi-value" id="kpiPending">0</div>
+      <div class="kpi-label">Pending Work Orders</div>
+      <canvas class="kpi-sparkline" id="sparkPending"></canvas>
+    </div>
+
+    <div class="kpi-card purple" onclick="openDrillDown('sla')">
+      <div class="kpi-header">
+        <div class="kpi-icon">🎯</div>
+        <div class="kpi-trend trend-up">▲ 3.1%</div>
+      </div>
+      <div class="kpi-value"><span id="kpiSLA">0</span>%</div>
+      <div class="kpi-label">SLA Compliance</div>
+      <canvas class="kpi-sparkline" id="sparkSLA"></canvas>
+    </div>
+
+    <div class="kpi-card blue" onclick="openDrillDown('cost')">
+      <div class="kpi-header">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-trend trend-down">▼ 8.7%</div>
+      </div>
+      <div class="kpi-value" id="kpiCost">0</div>
+      <div class="kpi-label">Total Cost (AED)</div>
+      <canvas class="kpi-sparkline" id="sparkCost"></canvas>
+    </div>
+  </div>
+
+  <!-- AI INSIGHTS -->
+  <div class="ai-insights">
+    <div class="ai-header">
+      <div class="ai-badge">AI INSIGHTS</div>
+      <div class="ai-title">تحليل ذكي للأداء</div>
+    </div>
+    <div class="ai-insights-list" id="aiInsights"></div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Work Orders Trend (Monthly)</div>
+        <div class="chart-badge">LIVE DATA</div>
+      </div>
+      <div class="chart-container">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Status Distribution</div>
+        <div class="chart-badge">REAL-TIME</div>
+      </div>
+      <div class="chart-container-sm">
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Cost Breakdown by Category</div>
+      </div>
+      <div class="chart-container-sm">
+        <canvas id="costChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Region Performance Comparison</div>
+      </div>
+      <div class="chart-container-sm">
+        <canvas id="regionChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- DRILL-DOWN MODAL -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle">Details</div>
+        <div class="modal-subtitle" id="modalSubtitle">Drill-down view</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-stats" id="modalStats"></div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">Message</div>
