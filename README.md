@@ -35,7 +35,6 @@ dashboard/
 scripts/
   build-dashboard.mjs      # generates Quarterly_Dashboard.html (single file)
   write-dev-index.mjs      # regenerates dashboard/index.html
-  split-dashboard-js.mjs   # splits dashboard/_bundle.js back into js/*
 ```
 
 ## Usage
