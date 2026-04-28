@@ -232,6 +232,33 @@ body::before {
 .filter-select:hover { border-color: var(--indigo); background: #fff; }
 .filter-select:focus { outline: none; border-color: var(--indigo); box-shadow: 0 0 0 4px var(--ring); background: #fff; }
 
+.filter-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-stack .filter-label { margin-inline-start: 2px; }
+
+.filter-select.multi {
+  min-width: 210px;
+  min-height: 92px;
+  cursor: default;
+}
+
+.filter-select.date {
+  min-width: 150px;
+}
+
+.file-input { display: none; }
+
+.data-status {
+  width: 100%;
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .filter-divider { width: 1px; height: 22px; background: var(--border); }
 
 /* ─── 5. KPI cards ─────────────────────────────────────── */
@@ -349,6 +376,8 @@ body::before {
   margin-bottom: 22px;
 }
 
+.charts-grid-even { grid-template-columns: 1fr 1fr; }
+
 @media (max-width: 1100px) { .charts-grid { grid-template-columns: 1fr; } }
 
 .card {
@@ -387,6 +416,55 @@ body::before {
 
 .chart-box    { position: relative; height: 320px; }
 .chart-box-sm { position: relative; height: 320px; }
+
+.trend-flex-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.trend-flex-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trend-flex-label {
+  font-size: 11px;
+  color: var(--text-4);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+}
+
+.trend-flex-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trend-flex-chart {
+  margin-top: 12px;
+}
+
+.trend-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+@media (max-width: 1200px) {
+  .trend-flex-controls { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+}
 
 /* ─── 7. AI Insights ────────────────────────────────────── */
 .insights-card {
@@ -480,6 +558,7 @@ body::before {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.45);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   display: none;
   align-items: center;
@@ -498,7 +577,7 @@ body::before {
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   padding: 24px;
-  max-width: 760px;
+  max-width: 1120px;
   width: 100%;
   max-height: 86vh;
   overflow-y: auto;
@@ -566,7 +645,7 @@ body::before {
   overflow: hidden;
 }
 .tbl th {
-  text-align: right;
+  text-align: left;
   padding: 11px 12px;
   background: var(--surface-2);
   font-size: 11px;
@@ -583,6 +662,11 @@ body::before {
 }
 .tbl tr:last-child td { border-bottom: none; }
 .tbl tr:hover td { background: rgba(99, 102, 241, 0.04); }
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
 
 .pill {
   display: inline-block;
@@ -662,75 +746,123 @@ body::before {
 
   <!-- FILTERS -->
   <div class="filter-bar">
-    <div class="filter-group">
-      <span class="filter-label">Quarter</span>
-      <select class="filter-select" id="quarterSelect" onchange="updateDashboard()">
-        <option value="Q1">Q1 — Jan-Mar 2026</option>
-        <option value="Q2" selected>Q2 — Apr-Jun 2026</option>
-        <option value="Q3">Q3 — Jul-Sep 2026</option>
-        <option value="Q4">Q4 — Oct-Dec 2026</option>
+    <input class="file-input" id="fileInput" type="file" accept=".xlsx,.xlsm,.csv" onchange="handleFileUpload(event)">
+    <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Upload Excel</button>
+
+    <div class="filter-stack">
+      <span class="filter-label">Priority</span>
+      <select class="filter-select multi" id="priorityFilter" multiple title="Priority filter" aria-label="Priority filter" onchange="applyFiltersAndUpdate()">
       </select>
     </div>
-    <div class="filter-divider"></div>
-    <div class="filter-group">
-      <span class="filter-label">Region</span>
-      <select class="filter-select" id="regionSelect" onchange="updateDashboard()">
-        <option value="all">All Regions</option>
-        <option value="madinat">Madinat Zayed</option>
-        <option value="liwa">Liwa</option>
+
+    <div class="filter-stack">
+      <span class="filter-label">Level Of Completion</span>
+      <select class="filter-select multi" id="levelFilter" multiple title="Level of completion filter" aria-label="Level of completion filter" onchange="applyFiltersAndUpdate()">
       </select>
     </div>
-    <div class="filter-divider"></div>
-    <div class="filter-group">
-      <span class="filter-label">View</span>
-      <select class="filter-select" id="viewSelect" onchange="updateDashboard()">
-        <option value="overview">Overview</option>
-        <option value="financial">Financial</option>
-        <option value="operational">Operational</option>
+
+    <div class="filter-stack">
+      <span class="filter-label">Task Type</span>
+      <select class="filter-select multi" id="taskTypeFilter" multiple title="Task type filter" aria-label="Task type filter" onchange="applyFiltersAndUpdate()">
       </select>
     </div>
+
+    <div class="filter-stack">
+      <span class="filter-label">Overdue Status</span>
+      <select class="filter-select multi" id="overdueFilter" multiple title="Overdue status filter" aria-label="Overdue status filter" onchange="applyFiltersAndUpdate()">
+      </select>
+    </div>
+
+    <div class="filter-stack">
+      <span class="filter-label">Sub Class</span>
+      <select class="filter-select multi" id="subClassFilter" multiple title="Sub class filter" aria-label="Sub class filter" onchange="applyFiltersAndUpdate()">
+      </select>
+    </div>
+
+    <div class="filter-stack">
+      <span class="filter-label">Status</span>
+      <select class="filter-select multi" id="statusFilter" multiple title="Status filter" aria-label="Status filter" onchange="applyFiltersAndUpdate()">
+      </select>
+    </div>
+
+    <div class="filter-stack">
+      <span class="filter-label">Current Age</span>
+      <select class="filter-select multi" id="currentAgeFilter" multiple title="Current age filter" aria-label="Current age filter" onchange="applyFiltersAndUpdate()">
+      </select>
+    </div>
+
+    <div class="filter-stack">
+      <span class="filter-label">Task History Status</span>
+      <select class="filter-select multi" id="taskHistoryStatusFilter" multiple title="Task history status filter" aria-label="Task history status filter" onchange="applyFiltersAndUpdate()">
+      </select>
+    </div>
+
+    <div class="filter-stack">
+      <span class="filter-label">Task Created From</span>
+      <input class="filter-select date" id="createdFrom" type="date" title="Task created from date" aria-label="Task created from date" onchange="applyFiltersAndUpdate()">
+      <input class="filter-select date" id="createdTo" type="date" title="Task created to date" aria-label="Task created to date" onchange="applyFiltersAndUpdate()">
+    </div>
+
+    <div class="filter-stack">
+      <span class="filter-label">Task Due From</span>
+      <input class="filter-select date" id="dueFrom" type="date" title="Task due from date" aria-label="Task due from date" onchange="applyFiltersAndUpdate()">
+      <input class="filter-select date" id="dueTo" type="date" title="Task due to date" aria-label="Task due to date" onchange="applyFiltersAndUpdate()">
+    </div>
+
+    <button class="btn" onclick="clearFilters()">Clear Filters</button>
+    <div class="data-status" id="dataStatus">Upload Book1.xlsx to start live analysis.</div>
   </div>
 
   <!-- KPI CARDS -->
   <div class="kpi-grid">
-    <div class="kpi-card success" onclick="openDrillDown('completed')">
+    <div class="kpi-card success" onclick="openDrillDown('total')">
       <div class="kpi-head">
         <div class="kpi-icon">✓</div>
-        <span class="kpi-trend trend-up">▲ 12.4%</span>
+        <span class="kpi-trend trend-up" id="trendTotal">Live</span>
       </div>
-      <div class="kpi-value" id="kpiCompleted">0</div>
-      <div class="kpi-label">Completed Work Orders</div>
+      <div class="kpi-value" id="kpiTotal">0</div>
+      <div class="kpi-label">Filtered Work Orders</div>
       <div class="kpi-sparkline-wrap"><canvas id="sparkCompleted"></canvas></div>
     </div>
 
-    <div class="kpi-card warning" onclick="openDrillDown('pending')">
+    <div class="kpi-card warning" onclick="openDrillDown('completed')">
       <div class="kpi-head">
         <div class="kpi-icon">⏱</div>
-        <span class="kpi-trend trend-down">▼ 5.2%</span>
+        <span class="kpi-trend trend-up" id="trendCompleted">Closed</span>
       </div>
-      <div class="kpi-value" id="kpiPending">0</div>
-      <div class="kpi-label">Pending Work Orders</div>
+      <div class="kpi-value" id="kpiCompleted">0</div>
+      <div class="kpi-label">Completed Work Orders</div>
       <div class="kpi-sparkline-wrap"><canvas id="sparkPending"></canvas></div>
     </div>
 
     <div class="kpi-card" onclick="openDrillDown('sla')">
       <div class="kpi-head">
         <div class="kpi-icon">◎</div>
-        <span class="kpi-trend trend-up">▲ 3.1%</span>
+        <span class="kpi-trend trend-up" id="trendSLA">Target 90%</span>
       </div>
       <div class="kpi-value"><span id="kpiSLA">0</span>%</div>
       <div class="kpi-label">SLA Compliance</div>
       <div class="kpi-sparkline-wrap"><canvas id="sparkSLA"></canvas></div>
     </div>
 
-    <div class="kpi-card info" onclick="openDrillDown('cost')">
+    <div class="kpi-card info" onclick="openDrillDown('closure')">
       <div class="kpi-head">
         <div class="kpi-icon">⌗</div>
-        <span class="kpi-trend trend-down">▼ 8.7%</span>
+        <span class="kpi-trend trend-down" id="trendClosure">Hours</span>
       </div>
-      <div class="kpi-value" id="kpiCost">0</div>
-      <div class="kpi-label">Total Cost (AED)</div>
+      <div class="kpi-value" id="kpiAvgClosure">0</div>
+      <div class="kpi-label">Avg Closure (hrs)</div>
       <div class="kpi-sparkline-wrap"><canvas id="sparkCost"></canvas></div>
+    </div>
+
+    <div class="kpi-card" onclick="openDrillDown('total')">
+      <div class="kpi-head">
+        <div class="kpi-icon">Σ</div>
+        <span class="kpi-trend trend-up" id="trendEstimatedStockCost">AED</span>
+      </div>
+      <div class="kpi-value" id="kpiEstimatedStockCost">0</div>
+      <div class="kpi-label">Total Estimated Stock Cost</div>
+      <div class="kpi-sparkline-wrap"><canvas id="sparkEstimatedStockCost"></canvas></div>
     </div>
   </div>
 
@@ -762,19 +894,64 @@ body::before {
     </div>
   </div>
 
-  <!-- CHARTS ROW 2 -->
-  <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
+  <!-- CHARTS ROW FLEX TREND -->
+  <div class="charts-grid">
     <div class="card">
       <div class="card-head">
-        <div class="card-title">Cost Breakdown by Category</div>
-        <span class="chip chip-amber">AED</span>
+        <div class="card-title">Work Orders Trend (Flexible)</div>
+        <span class="chip chip-indigo">Dynamic</span>
+      </div>
+
+      <div class="trend-flex-controls">
+        <div class="trend-flex-group">
+          <span class="trend-flex-label">From Date</span>
+          <input class="filter-select date" id="flexTrendFrom" type="date" title="Flexible trend start date" aria-label="Flexible trend start date" onchange="updateFlexibleTrend()">
+        </div>
+
+        <div class="trend-flex-group">
+          <span class="trend-flex-label">To Date</span>
+          <input class="filter-select date" id="flexTrendTo" type="date" title="Flexible trend end date" aria-label="Flexible trend end date" onchange="updateFlexibleTrend()">
+        </div>
+
+        <div class="trend-flex-group">
+          <span class="trend-flex-label">Bucket Mode</span>
+          <select class="filter-select" id="flexTrendBucket" title="Flexible trend bucket mode" aria-label="Flexible trend bucket mode" onchange="updateFlexibleTrend()">
+            <option value="auto" selected>Auto</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+
+        <div class="trend-flex-group">
+          <span class="trend-flex-label">View</span>
+          <label class="trend-toggle"><input id="flexTrendAdvanced" type="checkbox" onchange="updateFlexibleTrend()"> Advanced View</label>
+        </div>
+      </div>
+
+      <div class="trend-flex-inline">
+        <label class="trend-toggle"><input id="flexMetricCounts" type="checkbox" checked onchange="updateFlexibleTrend()"> Counts</label>
+        <label class="trend-toggle"><input id="flexMetricSla" type="checkbox" checked onchange="updateFlexibleTrend()"> SLA %</label>
+        <label class="trend-toggle"><input id="flexMetricCost" type="checkbox" checked onchange="updateFlexibleTrend()"> Estimated Stock Cost</label>
+      </div>
+
+      <div class="chart-box trend-flex-chart"><canvas id="flexTrendChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 2 -->
+  <div class="charts-grid charts-grid-even">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Top Categories by Work Orders</div>
+        <span class="chip chip-amber">Count</span>
       </div>
       <div class="chart-box-sm"><canvas id="costChart"></canvas></div>
     </div>
 
     <div class="card">
       <div class="card-head">
-        <div class="card-title">Region Performance Comparison</div>
+        <div class="card-title">Priority Distribution</div>
         <span class="chip chip-indigo">Radar</span>
       </div>
       <div class="chart-box-sm"><canvas id="regionChart"></canvas></div>
@@ -802,42 +979,49 @@ body::before {
 <div class="toast" id="toast">Message</div>
 
 <script>
-/* ───── DATA ───── */
-const DATA = {
-  Q1: {
-    all:     { completed: 1247, pending: 142, overdue: 38, sla: 91.2, cost: 487500, trend: [380, 412, 455] },
-    madinat: { completed: 742,  pending: 89,  overdue: 22, sla: 92.1, cost: 287400, trend: [225, 248, 269] },
-    liwa:    { completed: 505,  pending: 53,  overdue: 16, sla: 89.8, cost: 200100, trend: [155, 164, 186] }
-  },
-  Q2: {
-    all:     { completed: 1402, pending: 134, overdue: 31, sla: 94.3, cost: 445200, trend: [445, 478, 479] },
-    madinat: { completed: 836,  pending: 78,  overdue: 18, sla: 95.1, cost: 263800, trend: [264, 282, 290] },
-    liwa:    { completed: 566,  pending: 56,  overdue: 13, sla: 92.9, cost: 181400, trend: [181, 196, 189] }
-  },
-  Q3: {
-    all:     { completed: 1518, pending: 156, overdue: 42, sla: 92.8, cost: 512300, trend: [488, 512, 518] },
-    madinat: { completed: 905,  pending: 92,  overdue: 25, sla: 93.5, cost: 305700, trend: [290, 305, 310] },
-    liwa:    { completed: 613,  pending: 64,  overdue: 17, sla: 91.6, cost: 206600, trend: [198, 207, 208] }
-  },
-  Q4: {
-    all:     { completed: 1389, pending: 128, overdue: 29, sla: 95.7, cost: 468900, trend: [462, 458, 469] },
-    madinat: { completed: 825,  pending: 74,  overdue: 16, sla: 96.4, cost: 278200, trend: [274, 271, 280] },
-    liwa:    { completed: 564,  pending: 54,  overdue: 13, sla: 94.5, cost: 190700, trend: [188, 187, 189] }
-  }
+/* ───── LIVE DATA STATE ───── */
+const COLS = {
+  taskId: 'Task ID',
+  priority: 'Priority',
+  building: 'Building',
+  category: 'Category',
+  level: 'Level Of Completion',
+  taskCreated: 'Task Created',
+  taskDue: 'Task Due By Date',
+  fixDate: 'Fix Date',
+  status: 'Status',
+  estimatedStockCost: 'Estimated Stock Cost',
+  currentAge: 'Current Age',
+  taskType: 'Task Type',
+  subClass: 'Sub Class',
+  discipline: 'Discipline',
+  problem: 'Problem',
+  taskHistoryStatus: 'Task History Status',
+  overdueStatus: 'Overdue Status',
+  closureStatus: 'Closure Duration Status',
+  slaRisk: 'SLA Risk Status',
+  closureHours: 'Closure Duration (Hours)'
 };
 
-const COST_BREAKDOWN = {
-  Q2: { 'Mechanical': 145000, 'Electrical': 98500, 'Plumbing': 76200, 'Civil': 68400, 'Spare Parts': 57100 }
+const STATE = {
+  rows: [],
+  filtered: [],
+  monthKeys: [],
+  sourceName: '',
+  aggregate: null
 };
 
-const SAMPLE_WO = [
-  { id: 'WO-2026-1247', site: 'Al Dhafra Mosque #12',     type: 'Mechanical', status: 'completed', cost: 1850, days: 2 },
-  { id: 'WO-2026-1248', site: 'Liwa Central Mosque',       type: 'Electrical', status: 'completed', cost: 920,  days: 1 },
-  { id: 'WO-2026-1249', site: 'Madinat Zayed Mosque #3',   type: 'Plumbing',   status: 'pending',   cost: 450,  days: 4 },
-  { id: 'WO-2026-1250', site: 'Al Marfa Mosque',           type: 'Civil',      status: 'overdue',   cost: 3200, days: 8 },
-  { id: 'WO-2026-1251', site: 'Ghayathi Mosque',           type: 'Mechanical', status: 'completed', cost: 2100, days: 3 },
-  { id: 'WO-2026-1252', site: 'Liwa South Mosque',         type: 'Electrical', status: 'pending',   cost: 680,  days: 2 }
-];
+const FLEX_TREND_STATE = {
+  from: null,
+  to: null,
+  bucketMode: 'auto',
+  metrics: {
+    counts: true,
+    sla: true,
+    cost: true
+  },
+  advanced: false
+};
 
 /* ───── CHART.JS LIGHT THEME ───── */
 Chart.defaults.color = '#64748b';
@@ -854,6 +1038,8 @@ const C = {
   sky:     '#0ea5e9',
   pink:    '#ec4899'
 };
+
+const CHART_COLORS = [C.indigo, C.sky, C.violet, C.amber, C.pink, C.emerald, C.rose, '#14b8a6'];
 
 let charts = {};
 
@@ -899,6 +1085,233 @@ function animateCounter(el, target, duration = 1100, prefix = '', isFloat = fals
   requestAnimationFrame(step);
 }
 
+/* ───── EXCEL INGEST + FILTERS ───── */
+async function handleFileUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  try {
+    showToast('Loading workbook...');
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: null, raw: true });
+
+    STATE.rows = rawRows.map(normalizeRow);
+    STATE.sourceName = file.name;
+    STATE.monthKeys = getMonthKeys(STATE.rows);
+    buildFilterOptions();
+    setDefaultDateRanges();
+    applyFiltersAndUpdate();
+    showToast(`${STATE.rows.length.toLocaleString()} rows loaded`);
+  } catch (error) {
+    console.error(error);
+    showToast('Could not read the workbook');
+  }
+}
+
+function normalizeRow(row) {
+  return {
+    ...row,
+    [COLS.taskCreated]: coerceDate(row[COLS.taskCreated]),
+    [COLS.taskDue]: coerceDate(row[COLS.taskDue]),
+    [COLS.fixDate]: coerceDate(row[COLS.fixDate]),
+    [COLS.estimatedStockCost]: toNumber(row[COLS.estimatedStockCost]),
+    [COLS.closureHours]: toNumber(readByPrefix(row, COLS.closureHours))
+  };
+}
+
+function readByPrefix(row, prefix) {
+  const direct = row[prefix];
+  if (direct !== undefined) return direct;
+  const key = Object.keys(row).find(k => k && k.startsWith(prefix));
+  return key ? row[key] : null;
+}
+
+function coerceDate(value) {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (typeof value === 'number') {
+    const parsed = XLSX.SSF.parse_date_code(value);
+    if (!parsed) return null;
+    return new Date(parsed.y, parsed.m - 1, parsed.d, parsed.H || 0, parsed.M || 0, parsed.S || 0);
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function toNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function buildFilterOptions() {
+  fillMultiSelect('priorityFilter', uniqueValues(COLS.priority));
+  fillMultiSelect('levelFilter', uniqueValues(COLS.level));
+  fillMultiSelect('taskTypeFilter', uniqueValues(COLS.taskType));
+  fillMultiSelect('overdueFilter', uniqueValues(COLS.overdueStatus));
+  fillMultiSelect('subClassFilter', uniqueValues(COLS.subClass));
+  fillMultiSelect('statusFilter', uniqueValues(COLS.status));
+  fillMultiSelect('currentAgeFilter', uniqueValues(COLS.currentAge));
+  fillMultiSelect('taskHistoryStatusFilter', uniqueValues(COLS.taskHistoryStatus));
+}
+
+function uniqueValues(column) {
+  return [...new Set(STATE.rows.map(row => filterValue(row[column])))]
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+function fillMultiSelect(id, values) {
+  const select = document.getElementById(id);
+  select.innerHTML = values.map(value => `<option value="${escapeAttr(value)}" selected>${escapeHtml(value)}</option>`).join('');
+}
+
+function setDefaultDateRanges() {
+  setDateInputs('createdFrom', 'createdTo', COLS.taskCreated);
+  setDateInputs('dueFrom', 'dueTo', COLS.taskDue);
+  setFlexibleTrendDateRange();
+}
+
+function setDateInputs(fromId, toId, column) {
+  const dates = STATE.rows.map(row => row[column]).filter(Boolean).sort((a, b) => a - b);
+  document.getElementById(fromId).value = dates[0] ? toDateInput(dates[0]) : '';
+  document.getElementById(toId).value = dates[dates.length - 1] ? toDateInput(dates[dates.length - 1]) : '';
+}
+
+function setFlexibleTrendDateRange() {
+  const dates = STATE.rows.map(row => row[COLS.taskCreated]).filter(Boolean).sort((a, b) => a - b);
+  const fromInput = document.getElementById('flexTrendFrom');
+  const toInput = document.getElementById('flexTrendTo');
+  if (!fromInput || !toInput) return;
+  fromInput.value = dates[0] ? toDateInput(dates[0]) : '';
+  toInput.value = dates[dates.length - 1] ? toDateInput(dates[dates.length - 1]) : '';
+  FLEX_TREND_STATE.from = startOfDay(fromInput.value);
+  FLEX_TREND_STATE.to = endOfDay(toInput.value);
+}
+
+function getFlexibleTrendOptions() {
+  const fromInput = document.getElementById('flexTrendFrom');
+  const toInput = document.getElementById('flexTrendTo');
+  const bucketSelect = document.getElementById('flexTrendBucket');
+  const countsCheckbox = document.getElementById('flexMetricCounts');
+  const slaCheckbox = document.getElementById('flexMetricSla');
+  const costCheckbox = document.getElementById('flexMetricCost');
+  const advancedCheckbox = document.getElementById('flexTrendAdvanced');
+
+  FLEX_TREND_STATE.from = startOfDay(fromInput?.value || '');
+  FLEX_TREND_STATE.to = endOfDay(toInput?.value || '');
+  FLEX_TREND_STATE.bucketMode = bucketSelect?.value || 'auto';
+  FLEX_TREND_STATE.metrics = {
+    counts: !!countsCheckbox?.checked,
+    sla: !!slaCheckbox?.checked,
+    cost: !!costCheckbox?.checked
+  };
+  FLEX_TREND_STATE.advanced = !!advancedCheckbox?.checked;
+
+  if (!FLEX_TREND_STATE.metrics.counts && !FLEX_TREND_STATE.metrics.sla && !FLEX_TREND_STATE.metrics.cost) {
+    FLEX_TREND_STATE.metrics.counts = true;
+    if (countsCheckbox) countsCheckbox.checked = true;
+  }
+
+  return {
+    from: FLEX_TREND_STATE.from,
+    to: FLEX_TREND_STATE.to,
+    bucketMode: FLEX_TREND_STATE.bucketMode,
+    metrics: FLEX_TREND_STATE.metrics,
+    advanced: FLEX_TREND_STATE.advanced
+  };
+}
+
+function applyFiltersAndUpdate() {
+  STATE.filtered = applyFilters(STATE.rows);
+  updateDashboard();
+}
+
+function clearFilters() {
+  [
+    'priorityFilter',
+    'levelFilter',
+    'taskTypeFilter',
+    'overdueFilter',
+    'subClassFilter',
+    'statusFilter',
+    'currentAgeFilter',
+    'taskHistoryStatusFilter'
+  ].forEach(id => {
+    [...document.getElementById(id).options].forEach(option => option.selected = true);
+  });
+  setDefaultDateRanges();
+  applyFiltersAndUpdate();
+}
+
+function applyFilters(rows) {
+  const priorities = selectedValues('priorityFilter');
+  const levels = selectedValues('levelFilter');
+  const taskTypes = selectedValues('taskTypeFilter');
+  const overdueStatuses = selectedValues('overdueFilter');
+  const subClasses = selectedValues('subClassFilter');
+  const statuses = selectedValues('statusFilter');
+  const currentAges = selectedValues('currentAgeFilter');
+  const taskHistoryStatuses = selectedValues('taskHistoryStatusFilter');
+  const createdFrom = startOfDay(document.getElementById('createdFrom').value);
+  const createdTo = endOfDay(document.getElementById('createdTo').value);
+  const dueFrom = startOfDay(document.getElementById('dueFrom').value);
+  const dueTo = endOfDay(document.getElementById('dueTo').value);
+
+  return rows.filter(row => {
+    const created = row[COLS.taskCreated];
+    const due = row[COLS.taskDue];
+    return matchesSet(row[COLS.priority], priorities)
+      && matchesSet(row[COLS.level], levels)
+      && matchesSet(row[COLS.taskType], taskTypes)
+      && matchesSet(row[COLS.overdueStatus], overdueStatuses)
+      && matchesSet(row[COLS.subClass], subClasses)
+      && matchesSet(row[COLS.status], statuses)
+      && matchesSet(row[COLS.currentAge], currentAges)
+      && matchesSet(row[COLS.taskHistoryStatus], taskHistoryStatuses)
+      && inRange(created, createdFrom, createdTo)
+      && inRange(due, dueFrom, dueTo);
+  });
+}
+
+function selectedValues(id) {
+  const select = document.getElementById(id);
+  return new Set([...select.selectedOptions].map(option => option.value));
+}
+
+function matchesSet(value, set) {
+  return set.has(filterValue(value));
+}
+
+function inRange(value, from, to) {
+  if (!value) return !from && !to;
+  return (!from || value >= from) && (!to || value <= to);
+}
+
+function startOfDay(value) {
+  return value ? new Date(`${value}T00:00:00`) : null;
+}
+
+function endOfDay(value) {
+  return value ? new Date(`${value}T23:59:59.999`) : null;
+}
+
+function toDateInput(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function normalizeText(value) {
+  return value === null || value === undefined ? '' : String(value).trim();
+}
+
+function filterValue(value) {
+  return normalizeText(value) || 'Unspecified';
+}
+
 /* ───── SPARKLINE ───── */
 function buildSparkline(canvasId, data, color) {
   const ctx = document.getElementById(canvasId).getContext('2d');
@@ -926,19 +1339,391 @@ function buildSparkline(canvasId, data, color) {
   });
 }
 
+function computeAggregates(rows) {
+  const completed = rows.filter(isCompleted).length;
+  const open = rows.filter(isOpen).length;
+  const overdue = rows.filter(isOverdue).length;
+  const cancelled = rows.filter(isCancelled).length;
+  const slaEligible = rows.filter(row => ['Closed Within SLA', 'Closed Overdue', 'SLA Failed'].includes(normalizeText(row[COLS.slaRisk])));
+  const slaWithin = slaEligible.filter(row => normalizeText(row[COLS.slaRisk]) === 'Closed Within SLA').length;
+  const closureValues = rows.map(row => row[COLS.closureHours]).filter(value => Number.isFinite(value));
+  const avgClosure = closureValues.length ? closureValues.reduce((sum, value) => sum + value, 0) / closureValues.length : 0;
+  const totalEstimatedStockCost = rows.reduce((sum, row) => sum + (Number.isFinite(row[COLS.estimatedStockCost]) ? row[COLS.estimatedStockCost] : 0), 0);
+  const byMonth = buildMonthlySeries(rows);
+
+  return {
+    total: rows.length,
+    completed,
+    open,
+    overdue,
+    cancelled,
+    other: Math.max(rows.length - completed - open - cancelled, 0),
+    sla: slaEligible.length ? (slaWithin / slaEligible.length) * 100 : 0,
+    slaWithin,
+    slaEligible: slaEligible.length,
+    avgClosure,
+    totalEstimatedStockCost,
+    byMonth,
+    statusDistribution: buildStatusDistribution(rows),
+    categories: topCounts(rows, COLS.category, 8),
+    priorities: countByPriority(rows)
+  };
+}
+
+function buildMonthlySeries(rows) {
+  const keys = STATE.monthKeys.length ? STATE.monthKeys : getMonthKeys(rows);
+  const series = keys.map(key => ({
+    key,
+    label: monthLabel(key),
+    total: 0,
+    completed: 0,
+    open: 0,
+    overdue: 0,
+    estimatedStockCost: 0
+  }));
+  const byKey = new Map(series.map(item => [item.key, item]));
+
+  rows.forEach(row => {
+    const key = monthKey(row[COLS.taskCreated]);
+    const bucket = byKey.get(key);
+    if (!bucket) return;
+    bucket.total += 1;
+    if (isCompleted(row)) bucket.completed += 1;
+    if (isOpen(row)) bucket.open += 1;
+    if (isOverdue(row)) bucket.overdue += 1;
+    bucket.estimatedStockCost += Number.isFinite(row[COLS.estimatedStockCost]) ? row[COLS.estimatedStockCost] : 0;
+  });
+
+  return {
+    labels: series.map(item => item.label),
+    total: series.map(item => item.total),
+    completed: series.map(item => item.completed),
+    open: series.map(item => item.open),
+    overdue: series.map(item => item.overdue),
+    estimatedStockCost: series.map(item => item.estimatedStockCost)
+  };
+}
+
+function buildStatusDistribution(rows) {
+  const counts = { Completed: 0, Open: 0, Overdue: 0, Cancelled: 0, Other: 0 };
+  rows.forEach(row => {
+    if (isCancelled(row)) counts.Cancelled += 1;
+    else if (isOpen(row)) counts.Open += 1;
+    else if (isOverdue(row)) counts.Overdue += 1;
+    else if (isCompleted(row)) counts.Completed += 1;
+    else counts.Other += 1;
+  });
+  return Object.fromEntries(Object.entries(counts).filter(([, value]) => value > 0));
+}
+
+function countByPriority(rows) {
+  const preferred = ['P1 - Emergency', 'P2 - High', 'P3 - Medium', 'P4 - Low', 'P5 - To be agreed', 'P6 - Variation Order', 'P7 - Snags', 'PPM'];
+  const counts = new Map(preferred.map(priority => [priority, 0]));
+  rows.forEach(row => {
+    const value = normalizeText(row[COLS.priority]) || 'Unspecified';
+    counts.set(value, (counts.get(value) || 0) + 1);
+  });
+  return [...counts.entries()].filter(([, value]) => value > 0);
+}
+
+function topCounts(rows, column, limit) {
+  const counts = new Map();
+  rows.forEach(row => {
+    const value = normalizeText(row[column]) || 'Unspecified';
+    counts.set(value, (counts.get(value) || 0) + 1);
+  });
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
+}
+
+function getMonthKeys(rows) {
+  return [...new Set(rows.map(row => monthKey(row[COLS.taskCreated])).filter(Boolean))].sort();
+}
+
+function monthKey(date) {
+  if (!(date instanceof Date)) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthLabel(key) {
+  const [year, month] = key.split('-').map(Number);
+  return new Date(year, month - 1, 1).toLocaleString('en-US', { month: 'short', year: '2-digit' });
+}
+
+function getBucketMode(rangeDays, forcedMode) {
+  if (forcedMode && forcedMode !== 'auto') return forcedMode;
+  if (rangeDays <= 45) return 'daily';
+  if (rangeDays <= 180) return 'weekly';
+  return 'monthly';
+}
+
+function startOfWeek(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function bucketKeyForDate(date, mode) {
+  if (!(date instanceof Date)) return { key: '', start: null, label: '' };
+  if (mode === 'daily') {
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return { key: toDateInput(start), start, label: start.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) };
+  }
+  if (mode === 'weekly') {
+    const start = startOfWeek(date);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    return {
+      key: `W-${toDateInput(start)}`,
+      start,
+      label: `${start.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} - ${end.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`
+    };
+  }
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  return {
+    key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
+    start,
+    label: start.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+  };
+}
+
+function getDateRangeDays(from, to) {
+  if (!(from instanceof Date) || !(to instanceof Date)) return 365;
+  const ms = to.getTime() - from.getTime();
+  return Math.max(1, Math.ceil(ms / (1000 * 60 * 60 * 24)) + 1);
+}
+
+function buildFlexibleTrendSeries(rows, options) {
+  const from = options.from || null;
+  const to = options.to || null;
+  const rangeRows = rows.filter(row => inRange(row[COLS.taskCreated], from, to));
+  const rangeDays = getDateRangeDays(from, to);
+  const bucketMode = getBucketMode(rangeDays, options.bucketMode);
+  const buckets = new Map();
+
+  rangeRows.forEach(row => {
+    const created = row[COLS.taskCreated];
+    const info = bucketKeyForDate(created, bucketMode);
+    if (!info.key) return;
+
+    if (!buckets.has(info.key)) {
+      buckets.set(info.key, {
+        label: info.label,
+        start: info.start,
+        completed: 0,
+        open: 0,
+        overdue: 0,
+        slaWithin: 0,
+        slaEligible: 0,
+        estimatedStockCost: 0
+      });
+    }
+
+    const bucket = buckets.get(info.key);
+    if (isCompleted(row)) bucket.completed += 1;
+    if (isOpen(row)) bucket.open += 1;
+    if (isOverdue(row)) bucket.overdue += 1;
+
+    const risk = normalizeText(row[COLS.slaRisk]);
+    if (['Closed Within SLA', 'Closed Overdue', 'SLA Failed'].includes(risk)) {
+      bucket.slaEligible += 1;
+      if (risk === 'Closed Within SLA') bucket.slaWithin += 1;
+    }
+
+    bucket.estimatedStockCost += Number.isFinite(row[COLS.estimatedStockCost]) ? row[COLS.estimatedStockCost] : 0;
+  });
+
+  const sorted = [...buckets.values()].sort((a, b) => a.start - b.start);
+  return {
+    mode: bucketMode,
+    labels: sorted.map(bucket => bucket.label),
+    completed: sorted.map(bucket => bucket.completed),
+    open: sorted.map(bucket => bucket.open),
+    overdue: sorted.map(bucket => bucket.overdue),
+    sla: sorted.map(bucket => (bucket.slaEligible ? (bucket.slaWithin / bucket.slaEligible) * 100 : 0)),
+    estimatedStockCost: sorted.map(bucket => bucket.estimatedStockCost)
+  };
+}
+
+function buildFlexibleTrendChart(series, options) {
+  const canvas = document.getElementById('flexTrendChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (charts.flexTrend) charts.flexTrend.destroy();
+
+  const datasets = [];
+  const metrics = options.metrics;
+  const advanced = options.advanced;
+
+  if (metrics.counts) {
+    datasets.push({
+      label: 'Completed',
+      data: series.completed,
+      borderColor: C.indigo,
+      backgroundColor: makeFill(ctx, C.indigo, 0.20, 0),
+      borderWidth: 2,
+      tension: 0.35,
+      fill: false,
+      pointRadius: 2,
+      yAxisID: advanced ? 'yCounts' : 'yMain'
+    });
+    datasets.push({
+      label: 'Open',
+      data: series.open,
+      borderColor: C.amber,
+      backgroundColor: makeFill(ctx, C.amber, 0.14, 0),
+      borderWidth: 2,
+      tension: 0.35,
+      fill: false,
+      pointRadius: 2,
+      yAxisID: advanced ? 'yCounts' : 'yMain'
+    });
+    datasets.push({
+      label: 'Overdue',
+      data: series.overdue,
+      borderColor: C.rose,
+      borderWidth: 2,
+      tension: 0.35,
+      fill: false,
+      pointRadius: 2,
+      yAxisID: advanced ? 'yCounts' : 'yMain'
+    });
+  }
+
+  if (metrics.sla) {
+    datasets.push({
+      label: 'SLA %',
+      data: series.sla,
+      borderColor: C.emerald,
+      backgroundColor: makeFill(ctx, C.emerald, 0.18, 0),
+      borderWidth: 2,
+      tension: 0.35,
+      fill: false,
+      pointRadius: 3,
+      yAxisID: advanced ? 'yPercent' : (metrics.counts || metrics.cost ? 'yPercent' : 'yMain')
+    });
+  }
+
+  if (metrics.cost) {
+    datasets.push({
+      type: advanced ? 'bar' : 'line',
+      label: 'Estimated Stock Cost',
+      data: series.estimatedStockCost,
+      borderColor: C.violet,
+      backgroundColor: advanced ? hexToRgba(C.violet, 0.35) : makeFill(ctx, C.violet, 0.18, 0),
+      borderWidth: 2,
+      tension: 0.35,
+      fill: !advanced,
+      pointRadius: advanced ? 0 : 2,
+      yAxisID: advanced ? 'yCost' : 'yMain'
+    });
+  }
+
+  const scales = {
+    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+  };
+
+  if (advanced) {
+    if (metrics.counts) {
+      scales.yCounts = { type: 'linear', position: 'left', beginAtZero: true, grid: { color: 'rgba(15, 23, 42, 0.05)' }, ticks: { color: '#94a3b8' } };
+    }
+    if (metrics.cost) {
+      scales.yCost = {
+        type: 'linear',
+        position: 'left',
+        beginAtZero: true,
+        offset: metrics.counts,
+        grid: { drawOnChartArea: !metrics.counts },
+        ticks: { color: '#8b5cf6', callback: value => `AED ${Number(value).toLocaleString()}` }
+      };
+    }
+    if (metrics.sla) {
+      scales.yPercent = { type: 'linear', position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { color: '#10b981', callback: value => `${value}%` } };
+    }
+  } else {
+    scales.yMain = { type: 'linear', position: 'left', beginAtZero: true, grid: { color: 'rgba(15, 23, 42, 0.05)' }, ticks: { color: '#94a3b8' } };
+    if (metrics.sla && (metrics.counts || metrics.cost)) {
+      scales.yPercent = { type: 'linear', position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { color: '#10b981', callback: value => `${value}%` } };
+    }
+  }
+
+  charts.flexTrend = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: series.labels,
+      datasets
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: { boxWidth: 10, boxHeight: 10, padding: 14, usePointStyle: true, pointStyle: 'circle' }
+        },
+        tooltip: {
+          ...tooltipBase,
+          callbacks: {
+            label(context) {
+              if (context.dataset.label === 'SLA %') return ` SLA %: ${Number(context.raw).toFixed(1)}%`;
+              if (context.dataset.label === 'Estimated Stock Cost') return ` Estimated Stock Cost: AED ${Number(context.raw).toLocaleString()}`;
+              return ` ${context.dataset.label}: ${Number(context.raw).toLocaleString()}`;
+            }
+          }
+        }
+      },
+      scales,
+      animation: { duration: 1000, easing: 'easeOutCubic' }
+    }
+  });
+}
+
+function updateFlexibleTrend() {
+  const rows = STATE.filtered || [];
+  const options = getFlexibleTrendOptions();
+  if (!rows.length) {
+    if (charts.flexTrend) charts.flexTrend.destroy();
+    return;
+  }
+
+  const series = buildFlexibleTrendSeries(rows, options);
+  buildFlexibleTrendChart(series, options);
+}
+
+function isCompleted(row) {
+  return ['COMPLETE', 'HISTORY'].includes(normalizeText(row[COLS.status]).toUpperCase());
+}
+
+function isOpen(row) {
+  return normalizeText(row[COLS.closureStatus]) === 'Open';
+}
+
+function isOverdue(row) {
+  return ['Open Overdue', 'Closed Overdue'].includes(normalizeText(row[COLS.overdueStatus]));
+}
+
+function isCancelled(row) {
+  return normalizeText(row[COLS.status]).toUpperCase() === 'CANCELLED'
+    || normalizeText(row[COLS.overdueStatus]) === 'Cancelled'
+    || normalizeText(row[COLS.slaRisk]) === 'Cancelled';
+}
+
 /* ───── TREND CHART ───── */
-function buildTrendChart(d) {
+function buildTrendChart(agg) {
   const ctx = document.getElementById('trendChart').getContext('2d');
   if (charts.trend) charts.trend.destroy();
-  const months = ['Apr', 'May', 'Jun'];
   charts.trend = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: months,
+      labels: agg.byMonth.labels,
       datasets: [
         {
           label: 'Completed',
-          data: d.trend,
+          data: agg.byMonth.completed,
           borderColor: C.indigo,
           backgroundColor: makeFill(ctx, C.indigo, 0.20, 0),
           borderWidth: 3, fill: true, tension: 0.4,
@@ -946,15 +1731,15 @@ function buildTrendChart(d) {
           pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 7
         },
         {
-          label: 'Pending',
-          data: d.trend.map(v => Math.round(v * 0.12)),
+          label: 'Open',
+          data: agg.byMonth.open,
           borderColor: C.amber,
           backgroundColor: makeFill(ctx, C.amber, 0.14, 0),
           borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3
         },
         {
           label: 'Overdue',
-          data: d.trend.map(v => Math.round(v * 0.025)),
+          data: agg.byMonth.overdue,
           borderColor: C.rose,
           borderWidth: 2, fill: false, tension: 0.4, pointRadius: 3
         }
@@ -980,17 +1765,19 @@ function buildTrendChart(d) {
 }
 
 /* ───── STATUS CHART ───── */
-function buildStatusChart(d) {
+function buildStatusChart(agg) {
   const ctx = document.getElementById('statusChart').getContext('2d');
   if (charts.status) charts.status.destroy();
-  const total = d.completed + d.pending + d.overdue;
+  const labels = Object.keys(agg.statusDistribution);
+  const values = Object.values(agg.statusDistribution);
+  const total = values.reduce((sum, value) => sum + value, 0) || 1;
   charts.status = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['Completed', 'Pending', 'Overdue'],
+      labels,
       datasets: [{
-        data: [d.completed, d.pending, d.overdue],
-        backgroundColor: [C.emerald, C.amber, C.rose],
+        data: values,
+        backgroundColor: [C.emerald, C.amber, C.rose, C.sky, C.violet],
         borderColor: '#fff', borderWidth: 4, hoverOffset: 10
       }]
     },
@@ -1011,18 +1798,19 @@ function buildStatusChart(d) {
   });
 }
 
-/* ───── COST CHART ───── */
-function buildCostChart() {
+/* ───── CATEGORY CHART ───── */
+function buildCategoryChart(agg) {
   const ctx = document.getElementById('costChart').getContext('2d');
   if (charts.cost) charts.cost.destroy();
-  const data = COST_BREAKDOWN.Q2;
+  const labels = agg.categories.map(([label]) => label);
+  const values = agg.categories.map(([, value]) => value);
   charts.cost = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: Object.keys(data),
+      labels,
       datasets: [{
-        data: Object.values(data),
-        backgroundColor: [C.indigo, C.sky, C.violet, C.amber, C.pink],
+        data: values,
+        backgroundColor: values.map((_, index) => CHART_COLORS[index % CHART_COLORS.length]),
         borderRadius: 8, borderSkipped: false, barThickness: 18
       }]
     },
@@ -1030,12 +1818,13 @@ function buildCostChart() {
       responsive: true, maintainAspectRatio: false, indexAxis: 'y',
       plugins: {
         legend: { display: false },
-        tooltip: { ...tooltipBase, callbacks: { label: c => ` AED ${c.raw.toLocaleString()}` } }
+        tooltip: { ...tooltipBase, callbacks: { label: c => ` ${c.raw.toLocaleString()} work orders` } }
       },
       scales: {
         x: {
           grid: { color: 'rgba(15, 23, 42, 0.05)' },
-          ticks: { color: '#94a3b8', callback: v => 'AED ' + (v/1000) + 'K' }
+          beginAtZero: true,
+          ticks: { color: '#94a3b8', precision: 0 }
         },
         y: { grid: { display: false }, ticks: { color: '#475569', font: { weight: 600 } } }
       },
@@ -1044,33 +1833,23 @@ function buildCostChart() {
   });
 }
 
-/* ───── REGION CHART ───── */
-function buildRegionChart() {
+/* ───── PRIORITY CHART ───── */
+function buildPriorityRadar(agg) {
   const ctx = document.getElementById('regionChart').getContext('2d');
   if (charts.region) charts.region.destroy();
-  const q = document.getElementById('quarterSelect').value;
-  const m = DATA[q].madinat;
-  const l = DATA[q].liwa;
+  const labels = agg.priorities.map(([label]) => label);
+  const values = agg.priorities.map(([, value]) => value);
   charts.region = new Chart(ctx, {
     type: 'radar',
     data: {
-      labels: ['Completed', 'SLA', 'Speed', 'Efficiency', 'Quality'],
-      datasets: [
-        {
-          label: 'Madinat Zayed',
-          data: [m.completed/15, m.sla, 88, 82, 91],
-          backgroundColor: hexToRgba(C.indigo, 0.18),
-          borderColor: C.indigo, borderWidth: 2,
-          pointBackgroundColor: C.indigo, pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4
-        },
-        {
-          label: 'Liwa',
-          data: [l.completed/15, l.sla, 85, 86, 89],
-          backgroundColor: hexToRgba(C.pink, 0.16),
-          borderColor: C.pink, borderWidth: 2,
-          pointBackgroundColor: C.pink, pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4
-        }
-      ]
+      labels,
+      datasets: [{
+        label: 'Work Orders',
+        data: values,
+        backgroundColor: hexToRgba(C.indigo, 0.18),
+        borderColor: C.indigo, borderWidth: 2,
+        pointBackgroundColor: C.indigo, pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4
+      }]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -1095,24 +1874,27 @@ function buildRegionChart() {
 /* ───── INSIGHTS ───── */
 function generateInsights(d) {
   const insights = [];
-  const completionRate = (d.completed / (d.completed + d.pending + d.overdue) * 100).toFixed(1);
+  if (!STATE.rows.length) {
+    return [{ icon: 'i', text: '<strong>No data loaded:</strong> Upload an Excel workbook to start the live analysis.' }];
+  }
+
+  const completionRate = d.total ? (d.completed / d.total * 100).toFixed(1) : '0.0';
 
   if (d.sla > 94) {
-    insights.push({ icon: '🎯', text: `<strong>SLA Excellence:</strong> SLA Compliance reached ${d.sla}% — ${(d.sla - 90).toFixed(1)}% above target` });
+    insights.push({ icon: '◎', text: `<strong>SLA Excellence:</strong> SLA compliance reached ${d.sla.toFixed(1)}%, which is ${(d.sla - 90).toFixed(1)} points above the 90% target.` });
   } else {
-    insights.push({ icon: '⚠️', text: `<strong>SLA Alert:</strong> SLA Compliance ${d.sla}% — below target, improvement plan required` });
+    insights.push({ icon: '!', text: `<strong>SLA Alert:</strong> SLA compliance is ${d.sla.toFixed(1)}%, below the 90% target.` });
   }
 
-  insights.push({ icon: '✅', text: `<strong>Completion Rate:</strong> ${completionRate}% of work orders closed — strong performance` });
+  insights.push({ icon: '✓', text: `<strong>Completion Rate:</strong> ${completionRate}% of filtered work orders are completed.` });
 
-  if (d.overdue > 35) {
-    insights.push({ icon: '🚨', text: `<strong>Risk:</strong> ${d.overdue} work orders overdue — immediate action required` });
+  if (d.overdue > 0) {
+    insights.push({ icon: '!', text: `<strong>Overdue Risk:</strong> ${d.overdue.toLocaleString()} filtered work orders are overdue.` });
   } else {
-    insights.push({ icon: '✨', text: `<strong>Low Risk:</strong> only ${d.overdue} overdue — under control` });
+    insights.push({ icon: '+', text: '<strong>Overdue Risk:</strong> No overdue work orders in the current filter.' });
   }
 
-  const avgCost = (d.cost / d.completed).toFixed(0);
-  insights.push({ icon: '💡', text: `<strong>Cost Efficiency:</strong> avg cost ${avgCost} AED per WO — reducible via preventive maintenance` });
+  insights.push({ icon: '#', text: `<strong>Closure Time:</strong> Average closure duration is ${d.avgClosure.toFixed(1)} hours for rows with closure duration data.` });
 
   return insights;
 }
@@ -1129,60 +1911,62 @@ function renderInsights(d) {
 /* ───── MODAL ───── */
 function openDrillDown(type) {
   const titles = {
-    completed: { t: 'Completed Work Orders', s: 'Q2 2026 — Detailed View' },
-    pending:   { t: 'Pending Work Orders',   s: 'In Progress — Action Required' },
-    sla:       { t: 'SLA Compliance Details', s: 'Service Level Performance' },
-    cost:      { t: 'Cost Breakdown',        s: 'Financial Analysis' }
+    total:     { t: 'Filtered Work Orders', s: 'Current filter result' },
+    completed: { t: 'Completed Work Orders', s: 'Status is COMPLETE or HISTORY' },
+    sla:       { t: 'SLA Compliance Details', s: 'Rows included in SLA compliance calculation' },
+    closure:   { t: 'Closure Duration Details', s: 'Rows with numeric closure duration' }
   };
   document.getElementById('modalTitle').textContent = titles[type].t;
   document.getElementById('modalSubtitle').textContent = titles[type].s;
 
   const stats = document.getElementById('modalStats');
-  const q = document.getElementById('quarterSelect').value;
-  const r = document.getElementById('regionSelect').value;
-  const d = DATA[q][r];
+  const d = STATE.aggregate || computeAggregates(STATE.filtered);
+  const rows = rowsForModal(type).slice(0, 50);
 
-  if (type === 'completed') {
-    stats.innerHTML = `
-      <div class="stat"><div class="stat-val">${d.completed}</div><div class="stat-label">Total</div></div>
-      <div class="stat"><div class="stat-val">2.3</div><div class="stat-label">Avg Days</div></div>
-      <div class="stat"><div class="stat-val">${(d.cost/d.completed).toFixed(0)}</div><div class="stat-label">Avg Cost (AED)</div></div>`;
-  } else if (type === 'sla') {
-    stats.innerHTML = `
-      <div class="stat"><div class="stat-val">${d.sla}%</div><div class="stat-label">Compliance</div></div>
-      <div class="stat"><div class="stat-val">90%</div><div class="stat-label">Target</div></div>
-      <div class="stat"><div class="stat-val">+${(d.sla-90).toFixed(1)}%</div><div class="stat-label">vs Target</div></div>`;
-  } else if (type === 'cost') {
-    stats.innerHTML = `
-      <div class="stat"><div class="stat-val">${(d.cost/1000).toFixed(0)}K</div><div class="stat-label">Total (AED)</div></div>
-      <div class="stat"><div class="stat-val">${(d.cost/d.completed).toFixed(0)}</div><div class="stat-label">Per WO</div></div>
-      <div class="stat"><div class="stat-val">▼ 8.7%</div><div class="stat-label">vs Q1</div></div>`;
-  } else {
-    stats.innerHTML = `
-      <div class="stat"><div class="stat-val">${d.pending}</div><div class="stat-label">Pending</div></div>
-      <div class="stat"><div class="stat-val">${d.overdue}</div><div class="stat-label">Overdue</div></div>
-      <div class="stat"><div class="stat-val">${(d.pending/d.completed*100).toFixed(1)}%</div><div class="stat-label">Of Total</div></div>`;
-  }
+  stats.innerHTML = `
+    <div class="stat"><div class="stat-val">${d.total.toLocaleString()}</div><div class="stat-label">Filtered</div></div>
+    <div class="stat"><div class="stat-val">${d.completed.toLocaleString()}</div><div class="stat-label">Completed</div></div>
+    <div class="stat"><div class="stat-val">${d.sla.toFixed(1)}%</div><div class="stat-label">SLA Compliance</div></div>`;
 
   document.getElementById('modalContent').innerHTML = `
-    <table class="tbl">
-      <thead>
-        <tr><th>WO ID</th><th>Site</th><th>Type</th><th>Status</th><th>Cost (AED)</th><th>Days</th></tr>
-      </thead>
-      <tbody>
-        ${SAMPLE_WO.map(w => `
-          <tr>
-            <td><strong style="color:var(--indigo)">${w.id}</strong></td>
-            <td>${w.site}</td>
-            <td>${w.type}</td>
-            <td><span class="pill pill-${w.status}">${w.status}</span></td>
-            <td>${w.cost.toLocaleString()}</td>
-            <td>${w.days}</td>
-          </tr>`).join('')}
-      </tbody>
-    </table>`;
+    <div class="table-wrap">
+      <table class="tbl">
+        <thead>
+          <tr><th>Task ID</th><th>Building</th><th>Category</th><th>Priority</th><th>Status</th><th>Created</th><th>Due Date</th><th>SLA Risk</th></tr>
+        </thead>
+        <tbody>
+          ${rows.map(row => `
+            <tr>
+              <td><strong style="color:var(--indigo)">${escapeHtml(row[COLS.taskId])}</strong></td>
+              <td>${escapeHtml(row[COLS.building])}</td>
+              <td>${escapeHtml(row[COLS.category])}</td>
+              <td>${escapeHtml(row[COLS.priority])}</td>
+              <td><span class="pill ${pillClass(row)}">${escapeHtml(row[COLS.status])}</span></td>
+              <td>${formatDate(row[COLS.taskCreated])}</td>
+              <td>${formatDate(row[COLS.taskDue])}</td>
+              <td>${escapeHtml(row[COLS.slaRisk])}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-sub" style="margin-top:10px">Showing ${rows.length.toLocaleString()} of ${rowsForModal(type).length.toLocaleString()} matching rows.</div>`;
 
   document.getElementById('modal').classList.add('active');
+}
+
+function rowsForModal(type) {
+  if (type === 'completed') return STATE.filtered.filter(isCompleted);
+  if (type === 'sla') return STATE.filtered.filter(row => ['Closed Within SLA', 'Closed Overdue', 'SLA Failed'].includes(normalizeText(row[COLS.slaRisk])));
+  if (type === 'closure') return STATE.filtered.filter(row => Number.isFinite(row[COLS.closureHours]));
+  return STATE.filtered;
+}
+
+function pillClass(row) {
+  if (isCancelled(row)) return 'pill-overdue';
+  if (isOpen(row)) return 'pill-pending';
+  if (isOverdue(row)) return 'pill-overdue';
+  if (isCompleted(row)) return 'pill-completed';
+  return 'pill-pending';
 }
 
 function closeModal() {
@@ -1191,25 +1975,29 @@ function closeModal() {
 
 /* ───── EXPORTS ───── */
 function exportToExcel() {
+  if (!STATE.rows.length) {
+    showToast('Upload a workbook first');
+    return;
+  }
   const wb = XLSX.utils.book_new();
-  const q = document.getElementById('quarterSelect').value;
-  const r = document.getElementById('regionSelect').value;
-  const d = DATA[q][r];
+  const d = STATE.aggregate || computeAggregates(STATE.filtered);
 
   const summary = [
     ['TFM68 — AWQAF Mosques Maintenance'],
-    ['Quarter:', q, 'Region:', r],
+    ['Source File:', STATE.sourceName],
+    ['Filtered Rows:', d.total],
     [''],
     ['KPI', 'Value'],
     ['Completed Work Orders', d.completed],
-    ['Pending Work Orders', d.pending],
+    ['Open Work Orders', d.open],
     ['Overdue Work Orders', d.overdue],
-    ['SLA Compliance (%)', d.sla],
-    ['Total Cost (AED)', d.cost]
+    ['SLA Compliance (%)', Number(d.sla.toFixed(1))],
+    ['Average Closure (Hours)', Number(d.avgClosure.toFixed(1))],
+    ['Total Estimated Stock Cost', Number(d.totalEstimatedStockCost.toFixed(2))]
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), 'Summary');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(SAMPLE_WO), 'Work Orders');
-  XLSX.writeFile(wb, `TFM68_${q}_Report.xlsx`);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportRows()), 'Filtered Work Orders');
+  XLSX.writeFile(wb, `TFM68_Filtered_Report.xlsx`);
   showToast('Excel exported');
 }
 
@@ -1228,7 +2016,7 @@ async function exportToPDF() {
 }
 
 function refreshData() {
-  showToast('Refreshing…');
+  showToast('Refreshing...');
   setTimeout(() => { updateDashboard(); showToast('Data refreshed'); }, 500);
 }
 
@@ -1242,29 +2030,91 @@ function showToast(msg) {
 
 /* ───── MAIN ───── */
 function updateDashboard() {
-  const q = document.getElementById('quarterSelect').value;
-  const r = document.getElementById('regionSelect').value;
-  const d = DATA[q][r];
+  const d = computeAggregates(STATE.filtered);
+  STATE.aggregate = d;
 
+  animateCounter(document.getElementById('kpiTotal'), d.total);
   animateCounter(document.getElementById('kpiCompleted'), d.completed);
-  animateCounter(document.getElementById('kpiPending'),   d.pending);
-  animateCounter(document.getElementById('kpiSLA'),       d.sla, 1100, '', true);
-  animateCounter(document.getElementById('kpiCost'),      d.cost);
+  animateCounter(document.getElementById('kpiSLA'), d.sla, 1100, '', true);
+  animateCounter(document.getElementById('kpiAvgClosure'), d.avgClosure, 1100, '', true);
+  animateCounter(document.getElementById('kpiEstimatedStockCost'), d.totalEstimatedStockCost, 1100, 'AED ');
 
-  buildSparkline('sparkCompleted', d.trend, C.emerald);
-  buildSparkline('sparkPending',   d.trend.map(v => Math.round(v * 0.1)), C.amber);
-  buildSparkline('sparkSLA',       [d.sla - 2, d.sla - 1, d.sla], C.indigo);
-  buildSparkline('sparkCost',      d.trend.map(v => v * 350), C.sky);
+  buildSparkline('sparkCompleted', d.byMonth.total, C.emerald);
+  buildSparkline('sparkPending', d.byMonth.completed, C.amber);
+  buildSparkline('sparkSLA', d.byMonth.labels.map(() => d.sla), C.indigo);
+  buildSparkline('sparkCost', d.byMonth.labels.map(() => d.avgClosure), C.sky);
+  buildSparkline('sparkEstimatedStockCost', d.byMonth.estimatedStockCost, C.violet);
 
   buildTrendChart(d);
+  updateFlexibleTrend();
   buildStatusChart(d);
-  buildCostChart();
-  buildRegionChart();
+  buildCategoryChart(d);
+  buildPriorityRadar(d);
 
   renderInsights(d);
+  updateDataStatus(d);
 }
 
-window.addEventListener('load', updateDashboard);
+function updateDataStatus(d) {
+  const status = document.getElementById('dataStatus');
+  if (!STATE.rows.length) {
+    status.textContent = 'Upload Book1.xlsx to start live analysis.';
+    return;
+  }
+  status.textContent = `${STATE.sourceName}: ${d.total.toLocaleString()} of ${STATE.rows.length.toLocaleString()} rows match the current filters.`;
+}
+
+function exportRows() {
+  return STATE.filtered.map(row => ({
+    'Task ID': row[COLS.taskId],
+    'Priority': row[COLS.priority],
+    'Building': row[COLS.building],
+    'Category': row[COLS.category],
+    'Level Of Completion': row[COLS.level],
+    'Task Created': formatDateTime(row[COLS.taskCreated]),
+    'Task Due By Date': formatDateTime(row[COLS.taskDue]),
+    'Fix Date': formatDateTime(row[COLS.fixDate]),
+    'Status': row[COLS.status],
+    'Estimated Stock Cost': row[COLS.estimatedStockCost],
+    'Current Age': row[COLS.currentAge],
+    'Task Type': row[COLS.taskType],
+    'Sub Class': row[COLS.subClass],
+    'Discipline': row[COLS.discipline],
+    'Problem': row[COLS.problem],
+    'Task History Status': row[COLS.taskHistoryStatus],
+    'Overdue Status': row[COLS.overdueStatus],
+    'SLA Risk Status': row[COLS.slaRisk],
+    'Closure Duration (Hours)': row[COLS.closureHours]
+  }));
+}
+
+function formatDate(value) {
+  if (!(value instanceof Date)) return '';
+  return value.toLocaleDateString('en-GB');
+}
+
+function formatDateTime(value) {
+  if (!(value instanceof Date)) return '';
+  return value.toLocaleString('en-GB');
+}
+
+function escapeHtml(value) {
+  return normalizeText(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value);
+}
+
+window.addEventListener('load', () => {
+  STATE.filtered = [];
+  updateDashboard();
+});
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 </script>
 </body>
