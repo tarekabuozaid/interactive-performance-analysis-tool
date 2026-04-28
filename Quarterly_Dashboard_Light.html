@@ -719,6 +719,35 @@ body::before {
   .container   { padding: 18px 14px 48px; }
   .modal-stats { grid-template-columns: 1fr 1fr; }
 }
+
+.filter-panels details { margin-bottom: 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.filter-panels summary {
+  cursor: pointer; padding: 10px 14px; font-size: 13px; font-weight: 700; color: var(--text-2); list-style: none;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.filter-panels summary::-webkit-details-marker { display: none; }
+.filter-panels .filter-panel-body { padding: 0 14px 14px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.active-filters-strip {
+  font-size: 12px; color: var(--text-3); margin-bottom: 12px; padding: 10px 14px;
+  border: 1px dashed var(--border); border-radius: var(--radius-sm); background: var(--surface-2);
+}
+.filter-search {
+  width: 100%; max-width: 240px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font: inherit; font-size: 13px; background: var(--surface); margin-bottom: 6px;
+}
+.kpi-formula-hint {
+  font-size: 11px; color: var(--text-4); margin-top: -4px; margin-bottom: 6px; line-height: 1.35;
+}
+.flex-trend-summary {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;
+  margin-bottom: 12px; font-size: 12px; color: var(--text-3);
+}
+.flex-trend-summary strong { color: var(--text-1); display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+.modal-pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.modal-pager button { padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); font-weight: 600; cursor: pointer; }
+.modal-pager button:disabled { opacity: 0.45; cursor: not-allowed; }
+.tbl th.sortable { cursor: pointer; -webkit-user-select: none; user-select: none; }
+.tbl th.sortable:hover { color: var(--indigo); }
 </style>
 </head>
 <body>
@@ -747,69 +776,86 @@ body::before {
   <!-- FILTERS -->
   <div class="filter-bar">
     <input class="file-input" id="fileInput" type="file" accept=".xlsx,.xlsm,.csv" onchange="handleFileUpload(event)">
-    <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Upload Excel</button>
 
-    <div class="filter-stack">
-      <span class="filter-label">Priority</span>
-      <select class="filter-select multi" id="priorityFilter" multiple title="Priority filter" aria-label="Priority filter" onchange="applyFiltersAndUpdate()">
-      </select>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;width:100%;margin-bottom:10px;">
+      <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Upload Excel</button>
+      <button type="button" class="btn" onclick="saveFilterView()">Save view</button>
+      <button type="button" class="btn" onclick="loadFilterView()">Load saved view</button>
+      <button type="button" class="btn" onclick="clearFilters()">Clear Filters</button>
     </div>
 
-    <div class="filter-stack">
-      <span class="filter-label">Level Of Completion</span>
-      <select class="filter-select multi" id="levelFilter" multiple title="Level of completion filter" aria-label="Level of completion filter" onchange="applyFiltersAndUpdate()">
-      </select>
+    <div class="active-filters-strip" id="activeFiltersStrip"><strong>Active filters:</strong> Upload data to enable summaries.</div>
+
+    <div class="filter-panels">
+      <details open>
+        <summary>Basic filters</summary>
+        <div class="filter-panel-body">
+          <div class="filter-stack">
+            <span class="filter-label">Priority</span>
+            <input type="search" class="filter-search" placeholder="Search…" data-filter-search="priorityFilter" oninput="filterSelectOptionsFrom(this)" aria-label="Search priorities">
+            <select class="filter-select multi" id="priorityFilter" multiple title="Priority filter" aria-label="Priority filter" onchange="applyFiltersAndUpdate()"></select>
+          </div>
+          <div class="filter-stack">
+            <span class="filter-label">Level Of Completion</span>
+            <input type="search" class="filter-search" placeholder="Search…" data-filter-search="levelFilter" oninput="filterSelectOptionsFrom(this)" aria-label="Search levels">
+            <select class="filter-select multi" id="levelFilter" multiple title="Level of completion filter" aria-label="Level of completion filter" onchange="applyFiltersAndUpdate()"></select>
+          </div>
+          <div class="filter-stack">
+            <span class="filter-label">Task Type</span>
+            <input type="search" class="filter-search" placeholder="Search…" data-filter-search="taskTypeFilter" oninput="filterSelectOptionsFrom(this)" aria-label="Search task types">
+            <select class="filter-select multi" id="taskTypeFilter" multiple title="Task type filter" aria-label="Task type filter" onchange="applyFiltersAndUpdate()"></select>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Advanced filters</summary>
+        <div class="filter-panel-body">
+          <div class="filter-stack">
+            <span class="filter-label">Overdue Status</span>
+            <input type="search" class="filter-search" placeholder="Search…" data-filter-search="overdueFilter" oninput="filterSelectOptionsFrom(this)" aria-label="Search overdue statuses">
+            <select class="filter-select multi" id="overdueFilter" multiple title="Overdue status filter" aria-label="Overdue status filter" onchange="applyFiltersAndUpdate()"></select>
+          </div>
+          <div class="filter-stack">
+            <span class="filter-label">Sub Class</span>
+            <input type="search" class="filter-search" placeholder="Search…" data-filter-search="subClassFilter" oninput="filterSelectOptionsFrom(this)" aria-label="Search sub classes">
+            <select class="filter-select multi" id="subClassFilter" multiple title="Sub class filter" aria-label="Sub class filter" onchange="applyFiltersAndUpdate()"></select>
+          </div>
+          <div class="filter-stack">
+            <span class="filter-label">Status</span>
+            <input type="search" class="filter-search" placeholder="Search…" data-filter-search="statusFilter" oninput="filterSelectOptionsFrom(this)" aria-label="Search statuses">
+            <select class="filter-select multi" id="statusFilter" multiple title="Status filter" aria-label="Status filter" onchange="applyFiltersAndUpdate()"></select>
+          </div>
+          <div class="filter-stack">
+            <span class="filter-label">Current Age</span>
+            <input type="search" class="filter-search" placeholder="Search…" data-filter-search="currentAgeFilter" oninput="filterSelectOptionsFrom(this)" aria-label="Search ages">
+            <select class="filter-select multi" id="currentAgeFilter" multiple title="Current age filter" aria-label="Current age filter" onchange="applyFiltersAndUpdate()"></select>
+          </div>
+          <div class="filter-stack">
+            <span class="filter-label">Task History Status</span>
+            <input type="search" class="filter-search" placeholder="Search…" data-filter-search="taskHistoryStatusFilter" oninput="filterSelectOptionsFrom(this)" aria-label="Search history statuses">
+            <select class="filter-select multi" id="taskHistoryStatusFilter" multiple title="Task history status filter" aria-label="Task history status filter" onchange="applyFiltersAndUpdate()"></select>
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Date filters</summary>
+        <div class="filter-panel-body">
+          <div class="filter-stack">
+            <span class="filter-label">Task Created</span>
+            <input class="filter-select date" id="createdFrom" type="date" title="Task created from date" aria-label="Task created from date" onchange="applyFiltersAndUpdate()">
+            <input class="filter-select date" id="createdTo" type="date" title="Task created to date" aria-label="Task created to date" onchange="applyFiltersAndUpdate()">
+          </div>
+          <div class="filter-stack">
+            <span class="filter-label">Task Due</span>
+            <input class="filter-select date" id="dueFrom" type="date" title="Task due from date" aria-label="Task due from date" onchange="applyFiltersAndUpdate()">
+            <input class="filter-select date" id="dueTo" type="date" title="Task due to date" aria-label="Task due to date" onchange="applyFiltersAndUpdate()">
+          </div>
+        </div>
+      </details>
     </div>
 
-    <div class="filter-stack">
-      <span class="filter-label">Task Type</span>
-      <select class="filter-select multi" id="taskTypeFilter" multiple title="Task type filter" aria-label="Task type filter" onchange="applyFiltersAndUpdate()">
-      </select>
-    </div>
-
-    <div class="filter-stack">
-      <span class="filter-label">Overdue Status</span>
-      <select class="filter-select multi" id="overdueFilter" multiple title="Overdue status filter" aria-label="Overdue status filter" onchange="applyFiltersAndUpdate()">
-      </select>
-    </div>
-
-    <div class="filter-stack">
-      <span class="filter-label">Sub Class</span>
-      <select class="filter-select multi" id="subClassFilter" multiple title="Sub class filter" aria-label="Sub class filter" onchange="applyFiltersAndUpdate()">
-      </select>
-    </div>
-
-    <div class="filter-stack">
-      <span class="filter-label">Status</span>
-      <select class="filter-select multi" id="statusFilter" multiple title="Status filter" aria-label="Status filter" onchange="applyFiltersAndUpdate()">
-      </select>
-    </div>
-
-    <div class="filter-stack">
-      <span class="filter-label">Current Age</span>
-      <select class="filter-select multi" id="currentAgeFilter" multiple title="Current age filter" aria-label="Current age filter" onchange="applyFiltersAndUpdate()">
-      </select>
-    </div>
-
-    <div class="filter-stack">
-      <span class="filter-label">Task History Status</span>
-      <select class="filter-select multi" id="taskHistoryStatusFilter" multiple title="Task history status filter" aria-label="Task history status filter" onchange="applyFiltersAndUpdate()">
-      </select>
-    </div>
-
-    <div class="filter-stack">
-      <span class="filter-label">Task Created From</span>
-      <input class="filter-select date" id="createdFrom" type="date" title="Task created from date" aria-label="Task created from date" onchange="applyFiltersAndUpdate()">
-      <input class="filter-select date" id="createdTo" type="date" title="Task created to date" aria-label="Task created to date" onchange="applyFiltersAndUpdate()">
-    </div>
-
-    <div class="filter-stack">
-      <span class="filter-label">Task Due From</span>
-      <input class="filter-select date" id="dueFrom" type="date" title="Task due from date" aria-label="Task due from date" onchange="applyFiltersAndUpdate()">
-      <input class="filter-select date" id="dueTo" type="date" title="Task due to date" aria-label="Task due to date" onchange="applyFiltersAndUpdate()">
-    </div>
-
-    <button class="btn" onclick="clearFilters()">Clear Filters</button>
     <div class="data-status" id="dataStatus">Upload Book1.xlsx to start live analysis.</div>
   </div>
 
@@ -835,13 +881,24 @@ body::before {
       <div class="kpi-sparkline-wrap"><canvas id="sparkPending"></canvas></div>
     </div>
 
-    <div class="kpi-card" onclick="openDrillDown('sla')">
+    <div class="kpi-card warning" onclick="openDrillDown('overdue')" title="Matches Status Distribution overdue slice">
+      <div class="kpi-head">
+        <div class="kpi-icon">⚠</div>
+        <span class="kpi-trend trend-up" id="trendOverdueKpi">Slice</span>
+      </div>
+      <div class="kpi-value" id="kpiOverdue">0</div>
+      <div class="kpi-label">Overdue (status chart)</div>
+      <div class="kpi-sparkline-wrap"><canvas id="sparkOverdue"></canvas></div>
+    </div>
+
+    <div class="kpi-card" onclick="openDrillDown('sla')" title="SLA % = Closed Within SLA ÷ eligible SLA rows">
       <div class="kpi-head">
         <div class="kpi-icon">◎</div>
         <span class="kpi-trend trend-up" id="trendSLA">Target 90%</span>
       </div>
       <div class="kpi-value"><span id="kpiSLA">0</span>%</div>
       <div class="kpi-label">SLA Compliance</div>
+      <div class="kpi-formula-hint">Closed Within SLA ÷ (Closed Within SLA + Closed Overdue + SLA Failed)</div>
       <div class="kpi-sparkline-wrap"><canvas id="sparkSLA"></canvas></div>
     </div>
 
@@ -855,7 +912,7 @@ body::before {
       <div class="kpi-sparkline-wrap"><canvas id="sparkCost"></canvas></div>
     </div>
 
-    <div class="kpi-card" onclick="openDrillDown('total')">
+    <div class="kpi-card" onclick="openDrillDown('stockcost')">
       <div class="kpi-head">
         <div class="kpi-icon">Σ</div>
         <span class="kpi-trend trend-up" id="trendEstimatedStockCost">AED</span>
@@ -927,6 +984,16 @@ body::before {
           <span class="trend-flex-label">View</span>
           <label class="trend-toggle"><input id="flexTrendAdvanced" type="checkbox" onchange="updateFlexibleTrend()"> Advanced View</label>
         </div>
+
+        <div class="trend-flex-group">
+          <span class="trend-flex-label">Compare SLA</span>
+          <select class="filter-select" id="flexTrendCompare" title="Compare SLA by dimension" aria-label="Compare SLA by dimension" onchange="updateFlexibleTrend()" style="min-width:140px;">
+            <option value="">None</option>
+            <option value="priority">Priority</option>
+            <option value="taskType">Task Type</option>
+            <option value="subClass">Sub Class</option>
+          </select>
+        </div>
       </div>
 
       <div class="trend-flex-inline">
@@ -934,6 +1001,8 @@ body::before {
         <label class="trend-toggle"><input id="flexMetricSla" type="checkbox" checked onchange="updateFlexibleTrend()"> SLA %</label>
         <label class="trend-toggle"><input id="flexMetricCost" type="checkbox" checked onchange="updateFlexibleTrend()"> Estimated Stock Cost</label>
       </div>
+
+      <div class="flex-trend-summary" id="flexTrendSummary"></div>
 
       <div class="chart-box trend-flex-chart"><canvas id="flexTrendChart"></canvas></div>
     </div>
@@ -979,7 +1048,10 @@ body::before {
 <div class="toast" id="toast">Message</div>
 
 <script>
-/* ───── LIVE DATA STATE ───── */
+/*
+ * Quarterly_Dashboard_Light — code sections:
+ * COLS & STATE · CHART defaults · ingest / normalize · filters · aggregates · charts · flexible trend · modal · exports · boot
+ */
 const COLS = {
   taskId: 'Task ID',
   priority: 'Priority',
@@ -1020,8 +1092,29 @@ const FLEX_TREND_STATE = {
     sla: true,
     cost: true
   },
-  advanced: false
+  advanced: false,
+  compare: '' /* '', 'priority', 'taskType', 'subClass' */
 };
+
+const MODAL_STATE = {
+  type: 'total',
+  page: 1,
+  pageSize: 25,
+  sortKey: 'taskCreated',
+  sortDir: 'desc'
+};
+
+const FILTER_VIEW_STORAGE_KEY = 'tfm68-quarterly-dashboard-view-v1';
+const FILTER_SELECT_IDS = [
+  'priorityFilter',
+  'levelFilter',
+  'taskTypeFilter',
+  'overdueFilter',
+  'subClassFilter',
+  'statusFilter',
+  'currentAgeFilter',
+  'taskHistoryStatusFilter'
+];
 
 /* ───── CHART.JS LIGHT THEME ───── */
 Chart.defaults.color = '#64748b';
@@ -1085,7 +1178,7 @@ function animateCounter(el, target, duration = 1100, prefix = '', isFloat = fals
   requestAnimationFrame(step);
 }
 
-/* ───── EXCEL INGEST + FILTERS ───── */
+/* ───── INGEST (Excel → rows) ───── */
 async function handleFileUpload(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -1208,6 +1301,8 @@ function getFlexibleTrendOptions() {
     cost: !!costCheckbox?.checked
   };
   FLEX_TREND_STATE.advanced = !!advancedCheckbox?.checked;
+  const compareSelect = document.getElementById('flexTrendCompare');
+  FLEX_TREND_STATE.compare = compareSelect?.value || '';
 
   if (!FLEX_TREND_STATE.metrics.counts && !FLEX_TREND_STATE.metrics.sla && !FLEX_TREND_STATE.metrics.cost) {
     FLEX_TREND_STATE.metrics.counts = true;
@@ -1219,7 +1314,8 @@ function getFlexibleTrendOptions() {
     to: FLEX_TREND_STATE.to,
     bucketMode: FLEX_TREND_STATE.bucketMode,
     metrics: FLEX_TREND_STATE.metrics,
-    advanced: FLEX_TREND_STATE.advanced
+    advanced: FLEX_TREND_STATE.advanced,
+    compare: FLEX_TREND_STATE.compare
   };
 }
 
@@ -1229,20 +1325,130 @@ function applyFiltersAndUpdate() {
 }
 
 function clearFilters() {
-  [
-    'priorityFilter',
-    'levelFilter',
-    'taskTypeFilter',
-    'overdueFilter',
-    'subClassFilter',
-    'statusFilter',
-    'currentAgeFilter',
-    'taskHistoryStatusFilter'
-  ].forEach(id => {
-    [...document.getElementById(id).options].forEach(option => option.selected = true);
+  FILTER_SELECT_IDS.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    [...sel.options].forEach(option => { option.selected = true; });
   });
   setDefaultDateRanges();
   applyFiltersAndUpdate();
+}
+
+/* ───── FILTERS — UX (search, saved view, active summary) ───── */
+function filterSelectOptionsFrom(input) {
+  const id = input.getAttribute('data-filter-search');
+  if (!id) return;
+  const q = input.value.trim().toLowerCase();
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  [...sel.options].forEach(option => {
+    option.hidden = q !== '' && !option.textContent.toLowerCase().includes(q);
+  });
+}
+
+function resetOneFilter(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  [...sel.options].forEach(option => { option.selected = true; });
+  [...sel.options].forEach(option => { option.hidden = false; });
+  const search = document.querySelector(`[data-filter-search="${selectId}"]`);
+  if (search) search.value = '';
+  applyFiltersAndUpdate();
+}
+
+function getFilterViewSnapshot() {
+  const snap = {};
+  FILTER_SELECT_IDS.forEach(id => {
+    const sel = document.getElementById(id);
+    snap[id] = sel ? [...sel.selectedOptions].map(o => o.value) : [];
+  });
+  snap.createdFrom = document.getElementById('createdFrom')?.value || '';
+  snap.createdTo = document.getElementById('createdTo')?.value || '';
+  snap.dueFrom = document.getElementById('dueFrom')?.value || '';
+  snap.dueTo = document.getElementById('dueTo')?.value || '';
+  snap.flexTrendFrom = document.getElementById('flexTrendFrom')?.value || '';
+  snap.flexTrendTo = document.getElementById('flexTrendTo')?.value || '';
+  snap.flexTrendCompare = document.getElementById('flexTrendCompare')?.value || '';
+  snap.flexTrendAdvanced = !!document.getElementById('flexTrendAdvanced')?.checked;
+  snap.flexMetricCounts = !!document.getElementById('flexMetricCounts')?.checked;
+  snap.flexMetricSla = !!document.getElementById('flexMetricSla')?.checked;
+  snap.flexMetricCost = !!document.getElementById('flexMetricCost')?.checked;
+  snap.flexTrendBucket = document.getElementById('flexTrendBucket')?.value || 'auto';
+  return snap;
+}
+
+function applyFilterViewSnapshot(snap) {
+  if (!snap || typeof snap !== 'object') return;
+  FILTER_SELECT_IDS.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel || !Array.isArray(snap[id])) return;
+    const want = new Set(snap[id]);
+    [...sel.options].forEach(option => { option.selected = want.has(option.value); });
+  });
+  if (snap.createdFrom !== undefined) document.getElementById('createdFrom').value = snap.createdFrom || '';
+  if (snap.createdTo !== undefined) document.getElementById('createdTo').value = snap.createdTo || '';
+  if (snap.dueFrom !== undefined) document.getElementById('dueFrom').value = snap.dueFrom || '';
+  if (snap.dueTo !== undefined) document.getElementById('dueTo').value = snap.dueTo || '';
+  if (snap.flexTrendFrom !== undefined) document.getElementById('flexTrendFrom').value = snap.flexTrendFrom || '';
+  if (snap.flexTrendTo !== undefined) document.getElementById('flexTrendTo').value = snap.flexTrendTo || '';
+  const cmp = document.getElementById('flexTrendCompare');
+  if (cmp && snap.flexTrendCompare !== undefined) cmp.value = snap.flexTrendCompare || '';
+  const adv = document.getElementById('flexTrendAdvanced');
+  if (adv && snap.flexTrendAdvanced !== undefined) adv.checked = snap.flexTrendAdvanced;
+  const fc = document.getElementById('flexMetricCounts');
+  const fs = document.getElementById('flexMetricSla');
+  const fcost = document.getElementById('flexMetricCost');
+  if (fc && snap.flexMetricCounts !== undefined) fc.checked = snap.flexMetricCounts;
+  if (fs && snap.flexMetricSla !== undefined) fs.checked = snap.flexMetricSla;
+  if (fcost && snap.flexMetricCost !== undefined) fcost.checked = snap.flexMetricCost;
+  const fb = document.getElementById('flexTrendBucket');
+  if (fb && snap.flexTrendBucket !== undefined) fb.value = snap.flexTrendBucket || 'auto';
+}
+
+function saveFilterView() {
+  try {
+    localStorage.setItem(FILTER_VIEW_STORAGE_KEY, JSON.stringify(getFilterViewSnapshot()));
+    showToast('View saved in browser');
+  } catch (e) {
+    showToast('Could not save view');
+  }
+}
+
+function loadFilterView() {
+  const raw = localStorage.getItem(FILTER_VIEW_STORAGE_KEY);
+  if (!raw) {
+    showToast('No saved view');
+    return;
+  }
+  try {
+    applyFilterViewSnapshot(JSON.parse(raw));
+    applyFiltersAndUpdate();
+    showToast('Saved view loaded');
+  } catch (e) {
+    showToast('Invalid saved view');
+  }
+}
+
+function updateActiveFiltersSummary() {
+  const el = document.getElementById('activeFiltersStrip');
+  if (!el) return;
+  if (!STATE.rows.length) {
+    el.innerHTML = '<strong>Active filters:</strong> Upload data to enable summaries.';
+    return;
+  }
+  const buttons = [];
+  FILTER_SELECT_IDS.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel || sel.selectedOptions.length >= sel.options.length) return;
+    const lab = sel.closest('.filter-stack')?.querySelector('.filter-label')?.textContent?.trim() || id;
+    buttons.push(`<button type="button" class="btn" style="padding:4px 10px;margin:2px;font-size:11px" onclick="resetOneFilter('${id}')" title="Reset ${lab.replace(/'/g, '&#39;')}">${lab} ×</button>`);
+  });
+  const count = buttons.length;
+  if (!count) {
+    el.innerHTML = '<strong>Active filters:</strong> Full value lists selected — equivalent to “no narrowing” on categorical filters.';
+    return;
+  }
+  el.innerHTML = `<strong>Active filters (${count}):</strong> ${buttons.join(' ')} <button type="button" class="btn" style="padding:4px 10px;margin-left:8px;font-size:11px" onclick="clearFilters()">Clear all</button>`;
 }
 
 function applyFilters(rows) {
@@ -1342,7 +1548,7 @@ function buildSparkline(canvasId, data, color) {
 function computeAggregates(rows) {
   const completed = rows.filter(isCompleted).length;
   const open = rows.filter(isOpen).length;
-  const overdue = rows.filter(isOverdue).length;
+  const overdue = rows.filter(isOverdueExclusive).length;
   const cancelled = rows.filter(isCancelled).length;
   const slaEligible = rows.filter(row => ['Closed Within SLA', 'Closed Overdue', 'SLA Failed'].includes(normalizeText(row[COLS.slaRisk])));
   const slaWithin = slaEligible.filter(row => normalizeText(row[COLS.slaRisk]) === 'Closed Within SLA').length;
@@ -1371,7 +1577,7 @@ function computeAggregates(rows) {
 }
 
 function buildMonthlySeries(rows) {
-  const keys = STATE.monthKeys.length ? STATE.monthKeys : getMonthKeys(rows);
+  const keys = getMonthKeys(rows);
   const series = keys.map(key => ({
     key,
     label: monthLabel(key),
@@ -1379,7 +1585,11 @@ function buildMonthlySeries(rows) {
     completed: 0,
     open: 0,
     overdue: 0,
-    estimatedStockCost: 0
+    estimatedStockCost: 0,
+    slaEligible: 0,
+    slaWithin: 0,
+    closureSum: 0,
+    closureCount: 0
   }));
   const byKey = new Map(series.map(item => [item.key, item]));
 
@@ -1390,8 +1600,18 @@ function buildMonthlySeries(rows) {
     bucket.total += 1;
     if (isCompleted(row)) bucket.completed += 1;
     if (isOpen(row)) bucket.open += 1;
-    if (isOverdue(row)) bucket.overdue += 1;
+    if (isOverdueExclusive(row)) bucket.overdue += 1;
     bucket.estimatedStockCost += Number.isFinite(row[COLS.estimatedStockCost]) ? row[COLS.estimatedStockCost] : 0;
+
+    const risk = normalizeText(row[COLS.slaRisk]);
+    if (['Closed Within SLA', 'Closed Overdue', 'SLA Failed'].includes(risk)) {
+      bucket.slaEligible += 1;
+      if (risk === 'Closed Within SLA') bucket.slaWithin += 1;
+    }
+    if (Number.isFinite(row[COLS.closureHours])) {
+      bucket.closureSum += row[COLS.closureHours];
+      bucket.closureCount += 1;
+    }
   });
 
   return {
@@ -1400,7 +1620,9 @@ function buildMonthlySeries(rows) {
     completed: series.map(item => item.completed),
     open: series.map(item => item.open),
     overdue: series.map(item => item.overdue),
-    estimatedStockCost: series.map(item => item.estimatedStockCost)
+    estimatedStockCost: series.map(item => item.estimatedStockCost),
+    slaPct: series.map(item => (item.slaEligible ? (item.slaWithin / item.slaEligible) * 100 : 0)),
+    avgClosure: series.map(item => (item.closureCount ? item.closureSum / item.closureCount : 0))
   };
 }
 
@@ -1510,6 +1732,7 @@ function buildFlexibleTrendSeries(rows, options) {
 
     if (!buckets.has(info.key)) {
       buckets.set(info.key, {
+        key: info.key,
         label: info.label,
         start: info.start,
         completed: 0,
@@ -1524,7 +1747,7 @@ function buildFlexibleTrendSeries(rows, options) {
     const bucket = buckets.get(info.key);
     if (isCompleted(row)) bucket.completed += 1;
     if (isOpen(row)) bucket.open += 1;
-    if (isOverdue(row)) bucket.overdue += 1;
+    if (isOverdueExclusive(row)) bucket.overdue += 1;
 
     const risk = normalizeText(row[COLS.slaRisk]);
     if (['Closed Within SLA', 'Closed Overdue', 'SLA Failed'].includes(risk)) {
@@ -1536,6 +1759,40 @@ function buildFlexibleTrendSeries(rows, options) {
   });
 
   const sorted = [...buckets.values()].sort((a, b) => a.start - b.start);
+  const orderedKeys = sorted.map(bucket => bucket.key);
+
+  const compareLines = [];
+  const compareField = { priority: COLS.priority, taskType: COLS.taskType, subClass: COLS.subClass }[options.compare || ''];
+  if (compareField && rangeRows.length && options.metrics?.sla) {
+    const freq = new Map();
+    rangeRows.forEach(row => {
+      const v = filterValue(row[compareField]);
+      freq.set(v, (freq.get(v) || 0) + 1);
+    });
+    const topVals = [...freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(entry => entry[0]);
+    topVals.forEach(val => {
+      const sub = new Map();
+      rangeRows.forEach(row => {
+        if (filterValue(row[compareField]) !== val) return;
+        const created = row[COLS.taskCreated];
+        const info = bucketKeyForDate(created, bucketMode);
+        if (!info.key) return;
+        if (!sub.has(info.key)) sub.set(info.key, { slaWithin: 0, slaEligible: 0 });
+        const mini = sub.get(info.key);
+        const rk = normalizeText(row[COLS.slaRisk]);
+        if (['Closed Within SLA', 'Closed Overdue', 'SLA Failed'].includes(rk)) {
+          mini.slaEligible += 1;
+          if (rk === 'Closed Within SLA') mini.slaWithin += 1;
+        }
+      });
+      const data = orderedKeys.map(key => {
+        const mini = sub.get(key);
+        return mini && mini.slaEligible ? (mini.slaWithin / mini.slaEligible) * 100 : 0;
+      });
+      compareLines.push({ label: `SLA % · ${val}`, data });
+    });
+  }
+
   return {
     mode: bucketMode,
     labels: sorted.map(bucket => bucket.label),
@@ -1543,7 +1800,8 @@ function buildFlexibleTrendSeries(rows, options) {
     open: sorted.map(bucket => bucket.open),
     overdue: sorted.map(bucket => bucket.overdue),
     sla: sorted.map(bucket => (bucket.slaEligible ? (bucket.slaWithin / bucket.slaEligible) * 100 : 0)),
-    estimatedStockCost: sorted.map(bucket => bucket.estimatedStockCost)
+    estimatedStockCost: sorted.map(bucket => bucket.estimatedStockCost),
+    compareLines
   };
 }
 
@@ -1604,6 +1862,22 @@ function buildFlexibleTrendChart(series, options) {
       pointRadius: 3,
       yAxisID: advanced ? 'yPercent' : (metrics.counts || metrics.cost ? 'yPercent' : 'yMain')
     });
+    const dashColors = [C.sky, C.pink, '#14b8a6', C.amber];
+    if (series.compareLines?.length) {
+      series.compareLines.forEach((line, idx) => {
+        datasets.push({
+          label: line.label,
+          data: line.data,
+          borderColor: dashColors[idx % dashColors.length],
+          borderDash: [6, 4],
+          borderWidth: 2,
+          tension: 0.35,
+          fill: false,
+          pointRadius: 2,
+          yAxisID: advanced ? 'yPercent' : (metrics.counts || metrics.cost ? 'yPercent' : 'yMain')
+        });
+      });
+    }
   }
 
   if (metrics.cost) {
@@ -1629,18 +1903,25 @@ function buildFlexibleTrendChart(series, options) {
     if (metrics.counts) {
       scales.yCounts = { type: 'linear', position: 'left', beginAtZero: true, grid: { color: 'rgba(15, 23, 42, 0.05)' }, ticks: { color: '#94a3b8' } };
     }
+    if (metrics.sla) {
+      scales.yPercent = {
+        type: 'linear',
+        position: metrics.cost ? 'left' : 'right',
+        offset: !!(metrics.cost && metrics.counts),
+        min: 0,
+        max: 100,
+        grid: { drawOnChartArea: false },
+        ticks: { color: '#10b981', callback: value => `${value}%` }
+      };
+    }
     if (metrics.cost) {
       scales.yCost = {
         type: 'linear',
-        position: 'left',
+        position: 'right',
         beginAtZero: true,
-        offset: metrics.counts,
-        grid: { drawOnChartArea: !metrics.counts },
+        grid: { drawOnChartArea: false },
         ticks: { color: '#8b5cf6', callback: value => `AED ${Number(value).toLocaleString()}` }
       };
-    }
-    if (metrics.sla) {
-      scales.yPercent = { type: 'linear', position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, ticks: { color: '#10b981', callback: value => `${value}%` } };
     }
   } else {
     scales.yMain = { type: 'linear', position: 'left', beginAtZero: true, grid: { color: 'rgba(15, 23, 42, 0.05)' }, ticks: { color: '#94a3b8' } };
@@ -1669,9 +1950,10 @@ function buildFlexibleTrendChart(series, options) {
           ...tooltipBase,
           callbacks: {
             label(context) {
-              if (context.dataset.label === 'SLA %') return ` SLA %: ${Number(context.raw).toFixed(1)}%`;
-              if (context.dataset.label === 'Estimated Stock Cost') return ` Estimated Stock Cost: AED ${Number(context.raw).toLocaleString()}`;
-              return ` ${context.dataset.label}: ${Number(context.raw).toLocaleString()}`;
+              const lab = context.dataset.label || '';
+              if (lab === 'SLA %' || lab.startsWith('SLA %')) return ` ${lab}: ${Number(context.raw).toFixed(1)}%`;
+              if (lab === 'Estimated Stock Cost') return ` Estimated Stock Cost: AED ${Number(context.raw).toLocaleString()}`;
+              return ` ${lab}: ${Number(context.raw).toLocaleString()}`;
             }
           }
         }
@@ -1682,16 +1964,49 @@ function buildFlexibleTrendChart(series, options) {
   });
 }
 
+function updateFlexibleTrendSummary(series, options, rows) {
+  const el = document.getElementById('flexTrendSummary');
+  if (!el) return;
+  const from = options.from;
+  const to = options.to;
+  const rangeRows = rows.filter(row => inRange(row[COLS.taskCreated], from, to));
+  const totalWo = rangeRows.length;
+  const totalCost = rangeRows.reduce((sum, row) => sum + (Number.isFinite(row[COLS.estimatedStockCost]) ? row[COLS.estimatedStockCost] : 0), 0);
+  let slaEligible = 0;
+  let slaWithin = 0;
+  rangeRows.forEach(row => {
+    const risk = normalizeText(row[COLS.slaRisk]);
+    if (['Closed Within SLA', 'Closed Overdue', 'SLA Failed'].includes(risk)) {
+      slaEligible += 1;
+      if (risk === 'Closed Within SLA') slaWithin += 1;
+    }
+  });
+  const slaPct = slaEligible ? (slaWithin / slaEligible) * 100 : 0;
+  const fromStr = document.getElementById('flexTrendFrom')?.value || '';
+  const toStr = document.getElementById('flexTrendTo')?.value || '';
+  const cmpLabel = !options.compare ? '—' : options.compare === 'priority' ? 'Priority' : options.compare === 'taskType' ? 'Task Type' : 'Sub Class';
+  el.innerHTML = `
+    <div><strong>Selected range</strong><span>${fromStr || '—'} → ${toStr || '—'}</span></div>
+    <div><strong>Bucket mode</strong><span>${series.mode}</span></div>
+    <div><strong>Work orders in range</strong><span>${totalWo.toLocaleString()}</span></div>
+    <div><strong>Est. stock cost</strong><span>AED ${totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
+    <div><strong>SLA % (range)</strong><span>${slaPct.toFixed(1)}%</span></div>
+    <div><strong>Compare</strong><span>${cmpLabel}</span></div>`;
+}
+
 function updateFlexibleTrend() {
   const rows = STATE.filtered || [];
   const options = getFlexibleTrendOptions();
+  const summaryEl = document.getElementById('flexTrendSummary');
   if (!rows.length) {
     if (charts.flexTrend) charts.flexTrend.destroy();
+    if (summaryEl) summaryEl.innerHTML = '';
     return;
   }
 
   const series = buildFlexibleTrendSeries(rows, options);
   buildFlexibleTrendChart(series, options);
+  updateFlexibleTrendSummary(series, options, rows);
 }
 
 function isCompleted(row) {
@@ -1704,6 +2019,13 @@ function isOpen(row) {
 
 function isOverdue(row) {
   return ['Open Overdue', 'Closed Overdue'].includes(normalizeText(row[COLS.overdueStatus]));
+}
+
+/** Matches Status Distribution "Overdue" slice: not cancelled, not closure-open, but overdue flag (closed overdue path). */
+function isOverdueExclusive(row) {
+  if (isCancelled(row)) return false;
+  if (isOpen(row)) return false;
+  return isOverdue(row);
 }
 
 function isCancelled(row) {
@@ -1889,9 +2211,12 @@ function generateInsights(d) {
   insights.push({ icon: '✓', text: `<strong>Completion Rate:</strong> ${completionRate}% of filtered work orders are completed.` });
 
   if (d.overdue > 0) {
-    insights.push({ icon: '!', text: `<strong>Overdue Risk:</strong> ${d.overdue.toLocaleString()} filtered work orders are overdue.` });
+    insights.push({
+      icon: '!',
+      text: `<strong>Overdue (status match):</strong> ${d.overdue.toLocaleString()} filtered rows are overdue excluding open closure rows — aligned with Status Distribution.`
+    });
   } else {
-    insights.push({ icon: '+', text: '<strong>Overdue Risk:</strong> No overdue work orders in the current filter.' });
+    insights.push({ icon: '+', text: '<strong>Overdue (status match):</strong> No overdue slice rows in the current filter.' });
   }
 
   insights.push({ icon: '#', text: `<strong>Closure Time:</strong> Average closure duration is ${d.avgClosure.toFixed(1)} hours for rows with closure duration data.` });
@@ -1908,34 +2233,111 @@ function renderInsights(d) {
     </div>`).join('');
 }
 
-/* ───── MODAL ───── */
-function openDrillDown(type) {
-  const titles = {
-    total:     { t: 'Filtered Work Orders', s: 'Current filter result' },
-    completed: { t: 'Completed Work Orders', s: 'Status is COMPLETE or HISTORY' },
-    sla:       { t: 'SLA Compliance Details', s: 'Rows included in SLA compliance calculation' },
-    closure:   { t: 'Closure Duration Details', s: 'Rows with numeric closure duration' }
-  };
-  document.getElementById('modalTitle').textContent = titles[type].t;
-  document.getElementById('modalSubtitle').textContent = titles[type].s;
+/* ───── MODAL (drill-down) ───── */
+const MODAL_TITLES = {
+  total: { t: 'Filtered Work Orders', s: 'Current filter result' },
+  completed: { t: 'Completed Work Orders', s: 'Status is COMPLETE or HISTORY' },
+  sla: { t: 'SLA Compliance Details', s: 'Eligible set: Closed Within SLA + Closed Overdue + SLA Failed' },
+  closure: { t: 'Closure Duration Details', s: 'Rows with numeric closure duration' },
+  overdue: { t: 'Overdue Work Orders', s: 'All overdue flags (Open Overdue + Closed Overdue)' },
+  stockcost: { t: 'Estimated Stock Cost', s: 'Rows with estimated stock cost > 0' }
+};
 
-  const stats = document.getElementById('modalStats');
+function getModalSortValue(row, key) {
+  if (key === 'taskCreated') {
+    const v = row[COLS.taskCreated];
+    return v instanceof Date ? v.getTime() : 0;
+  }
+  if (key === 'taskDue') {
+    const v = row[COLS.taskDue];
+    return v instanceof Date ? v.getTime() : 0;
+  }
+  if (key === 'slaRisk') return normalizeText(row[COLS.slaRisk]);
+  if (key === 'estimatedStockCost') return Number.isFinite(row[COLS.estimatedStockCost]) ? row[COLS.estimatedStockCost] : 0;
+  if (key === 'currentAge') {
+    const raw = normalizeText(row[COLS.currentAge]);
+    const n = parseFloat(raw.replace(/[^\d.-]/g, ''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  return '';
+}
+
+function sortModalRows(rows, key, dir) {
+  const mult = dir === 'asc' ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const va = getModalSortValue(a, key);
+    const vb = getModalSortValue(b, key);
+    if (typeof va === 'number' && typeof vb === 'number') return mult * (va - vb);
+    return mult * String(va).localeCompare(String(vb), undefined, { numeric: true });
+  });
+}
+
+function rowsForModal(type) {
+  const rows = STATE.filtered || [];
+  if (type === 'completed') return rows.filter(isCompleted);
+  if (type === 'sla') return rows.filter(row => ['Closed Within SLA', 'Closed Overdue', 'SLA Failed'].includes(normalizeText(row[COLS.slaRisk])));
+  if (type === 'closure') return rows.filter(row => Number.isFinite(row[COLS.closureHours]));
+  if (type === 'overdue') return rows.filter(isOverdue);
+  if (type === 'stockcost') return rows.filter(row => Number.isFinite(row[COLS.estimatedStockCost]) && row[COLS.estimatedStockCost] > 0);
+  return rows;
+}
+
+function modalStatsHtml(type, d, totalRows, stockCostSum) {
+  let html = `
+    <div class="stat"><div class="stat-val">${totalRows.toLocaleString()}</div><div class="stat-label">This view</div></div>
+    <div class="stat"><div class="stat-val">${d.total.toLocaleString()}</div><div class="stat-label">Filtered total</div></div>`;
+  if (type === 'sla') {
+    html += `<div class="stat"><div class="stat-val">${d.sla.toFixed(1)}%</div><div class="stat-label">Overall SLA %</div></div>`;
+    html += `<div class="stat"><div class="stat-val">${d.slaEligible.toLocaleString()}</div><div class="stat-label">Eligible rows</div></div>`;
+  } else if (type === 'stockcost') {
+    html += `<div class="stat"><div class="stat-val">AED ${stockCostSum.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div><div class="stat-label">Sum est. cost</div></div>`;
+  } else if (type === 'closure') {
+    html += `<div class="stat"><div class="stat-val">${d.avgClosure.toFixed(1)}</div><div class="stat-label">Avg closure (hrs)</div></div>`;
+  }
+  return html;
+}
+
+function renderModalPage() {
+  const type = MODAL_STATE.type in MODAL_TITLES ? MODAL_STATE.type : 'total';
+  MODAL_STATE.type = type;
+  const titles = MODAL_TITLES[type];
+  document.getElementById('modalTitle').textContent = titles.t;
+  document.getElementById('modalSubtitle').textContent = titles.s;
+
   const d = STATE.aggregate || computeAggregates(STATE.filtered);
-  const rows = rowsForModal(type).slice(0, 50);
+  const all = rowsForModal(type);
+  const sorted = sortModalRows(all, MODAL_STATE.sortKey, MODAL_STATE.sortDir);
+  const total = sorted.length;
+  const pages = Math.max(1, Math.ceil(total / MODAL_STATE.pageSize));
+  if (MODAL_STATE.page > pages) MODAL_STATE.page = pages;
+  if (MODAL_STATE.page < 1) MODAL_STATE.page = 1;
+  const start = (MODAL_STATE.page - 1) * MODAL_STATE.pageSize;
+  const pageRows = sorted.slice(start, start + MODAL_STATE.pageSize);
 
-  stats.innerHTML = `
-    <div class="stat"><div class="stat-val">${d.total.toLocaleString()}</div><div class="stat-label">Filtered</div></div>
-    <div class="stat"><div class="stat-val">${d.completed.toLocaleString()}</div><div class="stat-label">Completed</div></div>
-    <div class="stat"><div class="stat-val">${d.sla.toFixed(1)}%</div><div class="stat-label">SLA Compliance</div></div>`;
+  let stockCostSum = 0;
+  if (type === 'stockcost') {
+    stockCostSum = all.reduce((sum, row) => sum + (Number.isFinite(row[COLS.estimatedStockCost]) ? row[COLS.estimatedStockCost] : 0), 0);
+  }
+
+  document.getElementById('modalStats').innerHTML = modalStatsHtml(type, d, total, stockCostSum);
+
+  const sortMark = key => (MODAL_STATE.sortKey !== key ? '' : (MODAL_STATE.sortDir === 'asc' ? ' ▲' : ' ▼'));
 
   document.getElementById('modalContent').innerHTML = `
     <div class="table-wrap">
       <table class="tbl">
         <thead>
-          <tr><th>Task ID</th><th>Building</th><th>Category</th><th>Priority</th><th>Status</th><th>Created</th><th>Due Date</th><th>SLA Risk</th></tr>
+          <tr>
+            <th>Task ID</th><th>Building</th><th>Category</th><th>Priority</th><th>Status</th>
+            <th class="sortable" onclick="modalColumnSort('taskCreated')">Created${sortMark('taskCreated')}</th>
+            <th class="sortable" onclick="modalColumnSort('taskDue')">Due${sortMark('taskDue')}</th>
+            <th class="sortable" onclick="modalColumnSort('slaRisk')">SLA Risk${sortMark('slaRisk')}</th>
+            <th class="sortable" onclick="modalColumnSort('estimatedStockCost')">Est. cost${sortMark('estimatedStockCost')}</th>
+            <th class="sortable" onclick="modalColumnSort('currentAge')">Age${sortMark('currentAge')}</th>
+          </tr>
         </thead>
         <tbody>
-          ${rows.map(row => `
+          ${pageRows.map(row => `
             <tr>
               <td><strong style="color:var(--indigo)">${escapeHtml(row[COLS.taskId])}</strong></td>
               <td>${escapeHtml(row[COLS.building])}</td>
@@ -1945,20 +2347,44 @@ function openDrillDown(type) {
               <td>${formatDate(row[COLS.taskCreated])}</td>
               <td>${formatDate(row[COLS.taskDue])}</td>
               <td>${escapeHtml(row[COLS.slaRisk])}</td>
+              <td>${Number.isFinite(row[COLS.estimatedStockCost]) ? row[COLS.estimatedStockCost].toLocaleString() : '—'}</td>
+              <td>${escapeHtml(row[COLS.currentAge])}</td>
             </tr>`).join('')}
         </tbody>
       </table>
     </div>
-    <div class="modal-sub" style="margin-top:10px">Showing ${rows.length.toLocaleString()} of ${rowsForModal(type).length.toLocaleString()} matching rows.</div>`;
+    <div class="modal-pager">
+      <button type="button" ${MODAL_STATE.page <= 1 ? 'disabled' : ''} onclick="modalChangePage(-1)">Previous</button>
+      <span>Page ${MODAL_STATE.page} / ${pages} · ${total.toLocaleString()} rows</span>
+      <button type="button" ${MODAL_STATE.page >= pages ? 'disabled' : ''} onclick="modalChangePage(1)">Next</button>
+    </div>`;
 
   document.getElementById('modal').classList.add('active');
 }
 
-function rowsForModal(type) {
-  if (type === 'completed') return STATE.filtered.filter(isCompleted);
-  if (type === 'sla') return STATE.filtered.filter(row => ['Closed Within SLA', 'Closed Overdue', 'SLA Failed'].includes(normalizeText(row[COLS.slaRisk])));
-  if (type === 'closure') return STATE.filtered.filter(row => Number.isFinite(row[COLS.closureHours]));
-  return STATE.filtered;
+function openDrillDown(type) {
+  const key = MODAL_TITLES[type] ? type : 'total';
+  MODAL_STATE.type = key;
+  MODAL_STATE.page = 1;
+  MODAL_STATE.sortKey = 'taskCreated';
+  MODAL_STATE.sortDir = 'desc';
+  renderModalPage();
+}
+
+function modalColumnSort(key) {
+  if (MODAL_STATE.sortKey === key) {
+    MODAL_STATE.sortDir = MODAL_STATE.sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    MODAL_STATE.sortKey = key;
+    MODAL_STATE.sortDir = (key === 'taskCreated' || key === 'taskDue' || key === 'estimatedStockCost') ? 'desc' : 'asc';
+  }
+  MODAL_STATE.page = 1;
+  renderModalPage();
+}
+
+function modalChangePage(delta) {
+  MODAL_STATE.page += delta;
+  renderModalPage();
 }
 
 function pillClass(row) {
@@ -1973,7 +2399,17 @@ function closeModal() {
   document.getElementById('modal').classList.remove('active');
 }
 
-/* ───── EXPORTS ───── */
+/* ───── EXPORTS (Excel / PDF) ───── */
+function pivotCountSheet(rows, columnHeader) {
+  const counts = new Map();
+  rows.forEach(row => {
+    const key = filterValue(row[columnHeader]);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  return [['Value', 'Count'], ...sorted];
+}
+
 function exportToExcel() {
   if (!STATE.rows.length) {
     showToast('Upload a workbook first');
@@ -1981,37 +2417,65 @@ function exportToExcel() {
   }
   const wb = XLSX.utils.book_new();
   const d = STATE.aggregate || computeAggregates(STATE.filtered);
+  const rows = STATE.filtered;
 
   const summary = [
     ['TFM68 — AWQAF Mosques Maintenance'],
+    ['Export Current View'],
     ['Source File:', STATE.sourceName],
+    ['Generated:', new Date().toISOString()],
+    ['Loaded Rows:', STATE.rows.length],
     ['Filtered Rows:', d.total],
+    ['Rows Missing Task Created:', STATE.rows.filter(r => !(r[COLS.taskCreated] instanceof Date)).length],
+    [''],
+    ['SLA formula:', 'Closed Within SLA ÷ (Closed Within SLA + Closed Overdue + SLA Failed)'],
     [''],
     ['KPI', 'Value'],
     ['Completed Work Orders', d.completed],
     ['Open Work Orders', d.open],
-    ['Overdue Work Orders', d.overdue],
+    ['Overdue (status chart)', d.overdue],
     ['SLA Compliance (%)', Number(d.sla.toFixed(1))],
     ['Average Closure (Hours)', Number(d.avgClosure.toFixed(1))],
     ['Total Estimated Stock Cost', Number(d.totalEstimatedStockCost.toFixed(2))]
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summary), 'Summary');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportRows()), 'Filtered Work Orders');
-  XLSX.writeFile(wb, `TFM68_Filtered_Report.xlsx`);
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pivotCountSheet(rows, COLS.priority)), 'By Priority');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pivotCountSheet(rows, COLS.status)), 'By Status');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pivotCountSheet(rows, COLS.category)), 'By Category');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pivotCountSheet(rows, COLS.subClass)), 'By Sub Class');
+  XLSX.writeFile(wb, `TFM68_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
   showToast('Excel exported');
 }
 
 async function exportToPDF() {
   showToast('Generating PDF…');
   const { jsPDF } = window.jspdf;
+  const d = STATE.aggregate || computeAggregates(STATE.filtered);
   const canvas = await html2canvas(document.querySelector('.container'), {
     backgroundColor: '#f6f7fb', scale: 2, useCORS: true
   });
   const pdf = new jsPDF('l', 'mm', 'a4');
-  const w = pdf.internal.pageSize.getWidth();
-  const h = (canvas.height * w) / canvas.width;
-  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, w, h);
-  pdf.save('TFM68_Dashboard.pdf');
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 12;
+  pdf.setFontSize(15);
+  pdf.setTextColor(30);
+  pdf.text('TFM68 — Quarterly Performance Dashboard', margin, 18);
+  pdf.setFontSize(10);
+  pdf.setTextColor(90);
+  pdf.text(`Generated: ${new Date().toLocaleString('en-GB')}`, margin, 26);
+  pdf.text(`Source: ${STATE.sourceName || '—'}`, margin, 32);
+  pdf.text(`Filtered rows: ${d.total.toLocaleString()} / ${STATE.rows.length.toLocaleString()} loaded`, margin, 38);
+  pdf.text('SLA % = Closed Within SLA ÷ (Closed Within SLA + Closed Overdue + SLA Failed)', margin, 44);
+  pdf.setTextColor(30);
+
+  const imgW = pageW - margin * 2;
+  let imgH = (canvas.height * imgW) / canvas.width;
+  const maxH = pageH - margin - 52;
+  if (imgH > maxH) imgH = maxH;
+  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', margin, 50, imgW, imgH);
+  pdf.save(`TFM68_Dashboard_${new Date().toISOString().slice(0, 10)}.pdf`);
   showToast('PDF exported');
 }
 
@@ -2028,21 +2492,23 @@ function showToast(msg) {
   showToast._t = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-/* ───── MAIN ───── */
+/* ───── MAIN (dashboard refresh) ───── */
 function updateDashboard() {
   const d = computeAggregates(STATE.filtered);
   STATE.aggregate = d;
 
   animateCounter(document.getElementById('kpiTotal'), d.total);
   animateCounter(document.getElementById('kpiCompleted'), d.completed);
+  animateCounter(document.getElementById('kpiOverdue'), d.overdue);
   animateCounter(document.getElementById('kpiSLA'), d.sla, 1100, '', true);
   animateCounter(document.getElementById('kpiAvgClosure'), d.avgClosure, 1100, '', true);
   animateCounter(document.getElementById('kpiEstimatedStockCost'), d.totalEstimatedStockCost, 1100, 'AED ');
 
   buildSparkline('sparkCompleted', d.byMonth.total, C.emerald);
   buildSparkline('sparkPending', d.byMonth.completed, C.amber);
-  buildSparkline('sparkSLA', d.byMonth.labels.map(() => d.sla), C.indigo);
-  buildSparkline('sparkCost', d.byMonth.labels.map(() => d.avgClosure), C.sky);
+  buildSparkline('sparkOverdue', d.byMonth.overdue, C.rose);
+  buildSparkline('sparkSLA', d.byMonth.slaPct, C.indigo);
+  buildSparkline('sparkCost', d.byMonth.avgClosure, C.sky);
   buildSparkline('sparkEstimatedStockCost', d.byMonth.estimatedStockCost, C.violet);
 
   buildTrendChart(d);
@@ -2053,6 +2519,7 @@ function updateDashboard() {
 
   renderInsights(d);
   updateDataStatus(d);
+  updateActiveFiltersSummary();
 }
 
 function updateDataStatus(d) {
@@ -2061,7 +2528,8 @@ function updateDataStatus(d) {
     status.textContent = 'Upload Book1.xlsx to start live analysis.';
     return;
   }
-  status.textContent = `${STATE.sourceName}: ${d.total.toLocaleString()} of ${STATE.rows.length.toLocaleString()} rows match the current filters.`;
+  const missingCreated = STATE.rows.filter(row => !(row[COLS.taskCreated] instanceof Date)).length;
+  status.textContent = `${STATE.sourceName}: ${d.total.toLocaleString()} of ${STATE.rows.length.toLocaleString()} rows match the current filters.${missingCreated ? ` ${missingCreated.toLocaleString()} row(s) have no Task Created date (excluded from monthly buckets).` : ''}`;
 }
 
 function exportRows() {
@@ -2110,6 +2578,25 @@ function escapeHtml(value) {
 function escapeAttr(value) {
   return escapeHtml(value);
 }
+
+/** Lightweight sanity checks for SLA / overdue helpers (run in console: selfTestDashboardMath()). */
+window.selfTestDashboardMath = function selfTestDashboardMath() {
+  const closedOverdue = {
+    [COLS.status]: 'COMPLETE',
+    [COLS.closureStatus]: 'Closed',
+    [COLS.overdueStatus]: 'Closed Overdue',
+    [COLS.slaRisk]: 'Closed Within SLA'
+  };
+  const openOverdue = {
+    [COLS.status]: 'ACTIVE',
+    [COLS.closureStatus]: 'Open',
+    [COLS.overdueStatus]: 'Open Overdue',
+    [COLS.slaRisk]: ''
+  };
+  console.assert(isOverdueExclusive(closedOverdue) === true, 'closed overdue → overdue slice');
+  console.assert(isOverdueExclusive(openOverdue) === false, 'open closure holds open overdue in Open slice');
+  return 'selfTestDashboardMath: OK';
+};
 
 window.addEventListener('load', () => {
   STATE.filtered = [];
